@@ -39,17 +39,17 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS "-Wall -std=c++11 ${CMAKE_CXX_FLAGS}")
 endif ()
 
-set(DATE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/date" CACHE FILEPATH "Path to Howard Hinnant's date library")
-
-if(NOT EXISTS ${DATE_INCLUDE_DIR}/date.h)
-	message(SEND_ERROR "Can't find date.h in ${DATE_INCLUDE_DIR}")
-endif()
-
 
 set(SQLPP11_INCLUDE_DIR "/usr/include/" CACHE FILEPATH "Path to sqlpp11 includes")
 
 if(NOT EXISTS ${SQLPP11_INCLUDE_DIR}/sqlpp11/exception.h)
   message(SEND_ERROR "Can't find exception.h in ${SQLPP11_INCLUDE_DIR}")
+endif()
+
+set(DATE_INCLUDE_DIR "${SQLPP11_INCLUDE_DIR}/sqlpp11" CACHE FILEPATH "Path to Howard Hinnant's date library")
+
+if(NOT EXISTS ${DATE_INCLUDE_DIR}/date.h)
+	message(SEND_ERROR "Can't find date.h in ${DATE_INCLUDE_DIR}")
 endif()
 
 message(SEND_MESSAGE "including sqlpp11 from ${SQLPP11_INCLUDE_DIR}")
