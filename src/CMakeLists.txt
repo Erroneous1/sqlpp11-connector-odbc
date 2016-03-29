@@ -23,10 +23,18 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-add_library(sqlpp-odbc
+add_library(sqlpp-odbc-static
 	connection.cpp
 	bind_result.cpp
 	prepared_statement.cpp
 	detail/connection_handle.cpp)
 
-install(TARGETS sqlpp-odbc DESTINATION lib)
+install(TARGETS sqlpp-odbc-static DESTINATION lib)
+
+add_library(sqlpp-odbc-shared SHARED
+	connection.cpp
+	bind_result.cpp
+	prepared_statement.cpp
+	detail/connection_handle.cpp)
+
+install(TARGETS sqlpp-odbc-shared DESTINATION lib)

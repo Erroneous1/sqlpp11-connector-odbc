@@ -25,7 +25,8 @@
 
 cmake_minimum_required(VERSION 2.6)
 project (sqlpp11-connector-odbc)
-enable_testing()
+
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake)
 
 find_package(ODBC REQUIRED)
 
@@ -63,4 +64,8 @@ install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/sqlpp11" DESTINATION include)
 
 
 add_subdirectory(src)
-add_subdirectory(tests)
+
+if(NOT ${CMAKE_SQLPP11_CONNECTOR_ODBC_TESTS_IGNORE})
+    enable_testing()
+    add_subdirectory(tests)
+endif()

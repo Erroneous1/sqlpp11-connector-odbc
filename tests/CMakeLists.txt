@@ -31,4 +31,4 @@ macro (build_and_run arg)
 	add_test("Sqlpp11ODBC${arg}" "${arg}")
 endmacro ()
 
-build_and_run(ODBCTest)
+#build_and_run(ODBCTest)

@@ -79,14 +79,34 @@ void printResultsBar(const ResultRow& row) {
 }
 
 namespace odbc = sqlpp::odbc;
-int main()
+int main(int argc, const char **argv)
 {
+	if(argc != 6)
+	{
+		std::cout << "Usage: ODBCTest data_source_name database username password type" << std::endl;
+		return 1;
+	}
 	odbc::connection_config config;
- 	config.data_source_name = "brewpipp";
-	config.database = "brewpipp";
-	config.username = "brewpipp";
-	config.password = "YDHzBtgRKuMGCJR8";
-	config.type = odbc::connection_config::ODBC_Type::MySQL;
+ 	config.data_source_name = argv[1];
+	config.database = argv[2];
+	config.username = argv[3];
+	config.password = argv[4];
+	std::map<std::string,odbc::connection_config::ODBC_Type> odbc_types({
+		{"MySQL",odbc::connection_config::ODBC_Type::MySQL},
+		{"PostgreSQL",odbc::connection_config::ODBC_Type::PostgreSQL},
+		{"SQLite3",odbc::connection_config::ODBC_Type::SQLite3},
+		{"TSQL",odbc::connection_config::ODBC_Type::TSQL}
+	});
+	auto mType = odbc_types.find(argv[5]);
+	if(mType == odbc_types.end())
+	{
+		std::cout << "Unknown type: " << argv[5] << ", valid types are:" << std::endl;
+		for(auto t : odbc_types)
+		{
+			std::cout << '\t' << t.first << std::endl;
+		}
+	}
+	config.type = mType->second;
 	config.debug = true;
 	std::unique_ptr<odbc::connection> db;
 	try
