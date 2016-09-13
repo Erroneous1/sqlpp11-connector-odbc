@@ -66,6 +66,8 @@ namespace sqlpp {
 			void _bind_text_parameter(size_t index, const std::string* value, bool is_null);
 			void _bind_date_parameter(size_t index, const ::sqlpp::chrono::day_point* value, bool is_null);
 			void _bind_date_time_parameter(size_t index, const ::sqlpp::chrono::microsecond_point* value, bool is_null);
+			void _bind_time_parameter(size_t index, const ::sqlpp::chrono::microsecond_point* value, bool is_null);
+			void _bind_timestamp_parameter(size_t index, const SQL_TIMESTAMP_STRUCT* value, bool is_null);
 			
 		};
 		
