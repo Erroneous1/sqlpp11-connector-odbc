@@ -24,6 +24,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 macro (build_and_run arg)
+	include_directories(include)
 	# Add headers to sources to enable file browsing in IDEs
 	add_executable("Sqlpp11ODBC${arg}" "${arg}.cpp" ${sqlpp_headers})
 	target_link_libraries("Sqlpp11ODBC${arg}" ${ODBC_LIBRARIES} sqlpp-odbc)
@@ -31,4 +32,4 @@ macro (build_and_run arg)
 	add_test("Sqlpp11ODBC${arg}" "${arg}")
 endmacro ()
 
-#build_and_run(ODBCTest)
+build_and_run(ODBCTest)
