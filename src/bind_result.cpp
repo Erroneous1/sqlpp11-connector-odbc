@@ -108,7 +108,7 @@ namespace sqlpp {
 			}
 		}
 		
-		void bind_result_t::_bind_date_result(size_t index, ::sqlpp::chrono::day_point* value, bool* is_null) {
+		void bind_result_t::_bind_date_result(size_t index, ::sqlpp::day_point::_cpp_value_type* value, bool* is_null) {
 			if(_handle->debug) {
 				std::cerr << "ODBC debug: binding date result at index " << index << std::endl;
 			}
@@ -123,14 +123,14 @@ namespace sqlpp {
 			}
 		}
 		
-		void bind_result_t::_bind_date_time_result(size_t index, ::sqlpp::chrono::microsecond_point* value, bool* is_null) {
+		void bind_result_t::_bind_date_time_result(size_t index, ::sqlpp::time_point::_cpp_value_type* value, bool* is_null) {
 			if(_handle->debug) {
 				std::cerr << "ODBC debug: binding date_time result at index " << index << std::endl;
 			}
 			
 			SQL_TIMESTAMP_STRUCT timestamp_struct = {0};
 			SQLLEN ind(0);
-			if(!SQL_SUCCEEDED(SQLGetData(_handle->stmt, index+1, SQL_C_TYPE_TIMESTAMP, &timestamp_struct, sizeof(SQL_TIMESTAMP_STRUCT), &ind))) {
+			if(!SQL_SUCCEEDED(SQLGetData(_handle->stmt, index+1, SQL_C_TYPE_TIMESTAMP, &timestamp_struct, /*std::max(*/sizeof(SQL_TIMESTAMP_STRUCT)/*,22)*/, nullptr))) {
 				throw sqlpp::exception("ODBC error: couldn't SQLGetData("+std::to_string(index+1)+",SQL_C_TYPE_TIMESTAMP): "+detail::odbc_error(_handle->stmt, SQL_HANDLE_STMT));
 			}
 			*is_null = (ind == SQL_NULL_DATA);
@@ -141,6 +141,35 @@ namespace sqlpp {
 					std::chrono::minutes(timestamp_struct.minute) +
 					std::chrono::seconds(timestamp_struct.second) +
 					std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::nanoseconds(timestamp_struct.fraction));
+			}
+		}
+		void bind_result_t::_bind_timestamp_result(size_t index, SQL_TIMESTAMP_STRUCT* value, bool* is_null) {
+			if(_handle->debug) {
+				std::cerr << "ODBC debug: binding date_time result at index " << index << std::endl;
+			}
+			
+			SQLLEN ind(0);
+			if(!SQL_SUCCEEDED(SQLGetData(_handle->stmt, index+1, SQL_C_TYPE_TIMESTAMP, value, /*std::max(*/sizeof(SQL_TIMESTAMP_STRUCT)/*,22)*/, nullptr))) {
+				throw sqlpp::exception("ODBC error: couldn't SQLGetData("+std::to_string(index+1)+",SQL_C_TYPE_TIMESTAMP): "+detail::odbc_error(_handle->stmt, SQL_HANDLE_STMT));
+			}
+			*is_null = (ind == SQL_NULL_DATA);
+		}
+		void bind_result_t::_bind_time_of_day_result(size_t index, ::sqlpp::time_of_day::_cpp_value_type* value, bool* is_null) {
+			if(_handle->debug) {
+				std::cerr << "ODBC debug: binding date_time result at index " << index << std::endl;
+			}
+			
+			SQL_TIME_STRUCT time_struct = {0};
+			SQLLEN ind(0);
+			if(!SQL_SUCCEEDED(SQLGetData(_handle->stmt, index+1, SQL_C_TYPE_TIME, &time_struct, sizeof(SQL_TIME_STRUCT), nullptr))) {
+				throw sqlpp::exception("ODBC error: couldn't SQLGetData("+std::to_string(index+1)+",SQL_C_TYPE_TIME): "+detail::odbc_error(_handle->stmt, SQL_HANDLE_STMT));
+			}
+			*is_null = (ind == SQL_NULL_DATA);
+			if(!*is_null) {
+				*value = 
+					std::chrono::hours{time_struct.hour} +
+					std::chrono::minutes{time_struct.minute} +
+					std::chrono::seconds{time_struct.second};
 			}
 		}
 		

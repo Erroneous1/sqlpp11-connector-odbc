@@ -148,7 +148,7 @@ int main(int argc, const char **argv)
 	(*db)(insert_into(tab).set(tab.alpha = (int64_t)omega, tab.gamma = true, tab.beta = "cheesecake"));
 	(*db)(insert_into(tab).set(tab.gamma = false, tab.beta = "blueberry muffin"));
 
-	for(const auto& row : (*db)(select(all_of(tab)).from(tab).where(true)))
+	for(const auto& row : (*db)(select(all_of(tab)).from(tab).unconditionally()))
 	{
 		printResultsSample(row);
 	};
@@ -164,7 +164,7 @@ int main(int argc, const char **argv)
 		bar.epsilon = date_time,
 		bar.zeta = date_time,
 		bar.eta = date_time));
-	for(const auto& row : (*db)(select(all_of(bar)).from(bar).where(true)))
+	for(const auto& row : (*db)(select(all_of(bar)).from(bar).unconditionally()))
 	{
 		printResultsBar(row);
 	}

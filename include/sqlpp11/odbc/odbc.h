@@ -30,5 +30,6 @@
 
 #include <sqlpp11/odbc/connection.h>
 #include <sqlpp11/odbc/insert_or.h>
+#include <sqlpp11/data_types.h>
 
 #endif //SQLPP11_ODBC_ODBC_H

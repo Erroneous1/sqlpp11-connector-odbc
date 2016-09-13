@@ -92,12 +92,12 @@ namespace sqlpp {
 			SQLLEN indPtr(is_null ? SQL_NULL_DATA : 0);
 			auto rc = SQLBindParameter(_handle->stmt, 
 									   index, 
-							  SQL_PARAM_INPUT, 
-							  SQL_C_CHAR, 
-							  SQL_BIT, 
-							  1, 
-							  0, 
-							  (SQLPOINTER)value, 
+									   SQL_PARAM_INPUT, 
+									   SQL_C_CHAR, 
+									   SQL_BIT, 
+									   1, 
+									   0, 
+									   (SQLPOINTER)value, 
 									   sizeof(signed char), 
 									   &indPtr);
 			if(rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) {
@@ -113,12 +113,12 @@ namespace sqlpp {
 			SQLLEN indPtr(is_null ? SQL_NULL_DATA : 0);
 			auto rc = SQLBindParameter(_handle->stmt, 
 									   index, 
-									SQL_PARAM_INPUT, 
-									SQL_C_DOUBLE, 
-									SQL_DOUBLE, 
-									15,
-									__DBL_DIG__, 
-									(SQLPOINTER)value, 
+									   SQL_PARAM_INPUT, 
+									   SQL_C_DOUBLE, 
+									   SQL_DOUBLE, 
+									   15,
+									   __DBL_DIG__, 
+									   (SQLPOINTER)value, 
 									   sizeof(double), 
 									   &indPtr);
 			if(rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) {
@@ -134,12 +134,12 @@ namespace sqlpp {
 			SQLLEN indPtr(is_null ? SQL_NULL_DATA : 0);
 			auto rc = SQLBindParameter(_handle->stmt, 
 									   index, 
-							  SQL_PARAM_INPUT,
-							  SQL_C_SBIGINT,
-							  SQL_BIGINT, 
-							  20,
-							  0, 
-							  (SQLPOINTER)value, 
+									   SQL_PARAM_INPUT,
+									   SQL_C_SBIGINT,
+									   SQL_BIGINT, 
+									   19,
+									   0, 
+									   (SQLPOINTER)value, 
 									   sizeof(int64_t), 
 									   &indPtr);
 			if(rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) {
@@ -155,12 +155,12 @@ namespace sqlpp {
 			SQLLEN indPtr(is_null ? SQL_NULL_DATA : 0);
 			auto rc = SQLBindParameter(_handle->stmt, 
 									   index, 
-							  SQL_PARAM_INPUT, 
-							  SQL_C_CHAR, 
-							  SQL_CHAR,
-							  value->length(),
+									   SQL_PARAM_INPUT, 
+									   SQL_C_CHAR, 
+									   SQL_CHAR,
+									   value->length(),
 									   0, 
-							  (SQLPOINTER)value, 
+									   (SQLPOINTER)value, 
 									   value->size(), 
 									   &indPtr);
 			if(rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) {
@@ -184,12 +184,12 @@ namespace sqlpp {
 			
 			auto rc = SQLBindParameter(_handle->stmt, 
 									   index, 
-							  SQL_PARAM_INPUT, 
-							  SQL_C_TYPE_DATE, 
-							  SQL_TYPE_DATE, 
-							  10,
-							  0, 
-							  (SQLPOINTER)&ymd_value, 
+									   SQL_PARAM_INPUT, 
+									   SQL_C_TYPE_DATE, 
+									   SQL_TYPE_DATE, 
+									   10,
+									   0, 
+									   (SQLPOINTER)&ymd_value, 
 									   sizeof(SQL_DATE_STRUCT), 
 									   &indPtr);
 			if(rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) {
@@ -219,12 +219,62 @@ namespace sqlpp {
 			
 			auto rc = SQLBindParameter(_handle->stmt, 
 									   index, 
-							  SQL_PARAM_INPUT, 
-							  SQL_C_TYPE_DATE, 
-							  SQL_TYPE_TIMESTAMP, 
-							  10,
-							  0, 
-							  (SQLPOINTER)&ts_value, 
+									   SQL_PARAM_INPUT, 
+									   SQL_C_TYPE_TIMESTAMP, 
+									   SQL_TYPE_TIMESTAMP, 
+									   sizeof(SQL_TIMESTAMP_STRUCT),
+									   0, 
+									   (SQLPOINTER)&ts_value, 
+									   sizeof(SQL_DATE_STRUCT), 
+									   &indPtr);
+			if(rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) {
+				throw sqlpp::exception("ODBC error: couldn't bind date parameter: "+detail::odbc_error(_handle->stmt, SQL_HANDLE_STMT));
+			}
+		}
+		
+		void prepared_statement_t::_bind_timestamp_parameter(size_t index, const SQL_TIMESTAMP_STRUCT* value, bool is_null) {
+			if(_handle->debug) {
+				std::cerr << "ODBC debug: binding date_time parameter"
+				" at index: " << index << ", being " << (is_null ? std::string() : "not") << " null" << std::endl;
+			}
+			SQLLEN indPtr(is_null ? SQL_NULL_DATA : 0);
+			auto rc = SQLBindParameter(_handle->stmt, 
+									   index, 
+									   SQL_PARAM_INPUT, 
+									   SQL_C_TYPE_TIMESTAMP, 
+									   SQL_TYPE_TIMESTAMP, 
+									   29,
+									   0, 
+									   (SQLPOINTER)value, 
+									   sizeof(SQL_DATE_STRUCT), 
+									   &indPtr);
+			if(rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) {
+				throw sqlpp::exception("ODBC error: couldn't bind date parameter: "+detail::odbc_error(_handle->stmt, SQL_HANDLE_STMT));
+			}
+		}
+		
+		void prepared_statement_t::_bind_time_parameter(size_t index, const ::sqlpp::chrono::microsecond_point* value, bool is_null) {
+			if(_handle->debug) {
+				std::cerr << "ODBC debug: binding date_time parameter"
+				" at index: " << index << ", being " << (is_null ? std::string() : "not") << " null" << std::endl;
+			}
+			SQLLEN indPtr(is_null ? SQL_NULL_DATA : 0);
+			SQL_TIME_STRUCT t_value = {0};
+			if(!is_null) {
+				const auto time = date::make_time(value->time_since_epoch());
+				t_value.hour = time.hours().count();
+				t_value.minute = time.minutes().count();
+				t_value.second = time.seconds().count();
+			}
+			
+			auto rc = SQLBindParameter(_handle->stmt, 
+									   index, 
+									   SQL_PARAM_INPUT, 
+									   SQL_C_TYPE_TIME, 
+									   SQL_TYPE_TIME, 
+									   8,
+									   0, 
+									   (SQLPOINTER)&t_value, 
 									   sizeof(SQL_DATE_STRUCT), 
 									   &indPtr);
 			if(rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) {
