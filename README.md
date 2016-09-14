@@ -30,7 +30,7 @@ Requirements:
 -------------
 __Compiler:__
 sqlpp11-connector-odbc makes use of C++11 and requires a recent compiler and STL. The following compilers are known to compile the test programs:
-  * g++-5.3.0 on Arch Linux as of 2016-02-24
+  * g++-6.1.1 on Arch Linux as of 2016-09-13
 
 __C++ SQL Layer:__
 sqlpp11-connector-odbc is meant to be used with sqlpp11 (https://github.com/rbock/sqlpp11).
