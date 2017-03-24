@@ -137,9 +137,7 @@ namespace sqlpp {
 		}
 		
 		size_t connection::execute(const std::string& statement) {
-			auto prepared = prepare_statement(*_handle, statement);
-			execute_statement(prepared->stmt);
-			return odbc_affected(prepared->stmt);
+			return _handle->exec_direct(statement);
 		}
 		
 		size_t connection::update_impl(const std::string& statement) {

@@ -36,6 +36,23 @@
 namespace sqlpp {
 	namespace odbc {
 		namespace detail {
+			std::string return_code_string(SQLRETURN rc) {
+				switch(rc) {
+					case 0: return "SQL_SUCCESS";
+					case 1: return "SQL_SUCCESS_WITH_INFO";
+					case 2: return "SQL_STILL_EXECUTING";
+					case -1: return "SQL_NULL_DATA/SQL_ERROR";
+					case -2: return "SQL_DATA_AT_EXEC/SQL_INVALID_HANDLE";
+					case 99: return "SQL_NEED_DATA";
+					case 100: return "SQL_NO_DATA";
+					case 101: return "SQL_PARAM_DATA_AVAILABLE";
+					default: return "Unknown return code "+std::to_string(rc);
+				}
+			}
+
+			std::string odbc_error(SQLHANDLE handle, SQLSMALLINT handle_type, SQLRETURN return_code){
+				return "Returned "+return_code_string(return_code)+' '+odbc_error(handle, handle_type);
+			}
 			
 			std::string odbc_error(SQLHANDLE handle, SQLSMALLINT handle_type){
 				std::vector<std::string> errors;
@@ -108,23 +125,10 @@ namespace sqlpp {
 					throw sqlpp::exception("ODBC error: couldn't SQLConnect("+config.data_source_name+"): "+err);
 				}
 				if(!config.database.empty()) {
-					SQLHSTMT stmt;
-					if(!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt))) {
-						throw sqlpp::exception("ODBC error: could SQLAllocHandle(SQL_HANDLE_STMT): "+odbc_error(stmt, SQL_HANDLE_STMT));
-					}
 					if(config.debug) {
-						std::cerr << "ODBC debug: using " << config.database;
+						std::cerr << "ODBC debug: using " << config.database << '\n';
 					}
-					auto rc = SQLExecDirect(stmt, (SQLCHAR*)std::string("USE "+config.database).c_str(), config.database.length()+4);
-					std::string err;
-					if(!SQL_SUCCEEDED(rc)){
-						err = detail::odbc_error(stmt, SQL_HANDLE_STMT);
-					}
-					SQLFreeHandle(SQL_HANDLE_STMT, stmt);
-					stmt = nullptr;
-					if(!SQL_SUCCEEDED(rc)) {
-						throw sqlpp::exception("ODBC error: couldn't SQLExecDirect(USE "+config.database+"): "+err);
-					}
+					exec_direct("USE "+config.database);
 				}
 			}
 			
@@ -138,6 +142,31 @@ namespace sqlpp {
 				}
 			}
 
+			size_t connection_handle_t::exec_direct(const std::string& statement) {
+				SQLHSTMT stmt;
+				if(!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt))) {
+					throw sqlpp::exception("ODBC error: could SQLAllocHandle(SQL_HANDLE_STMT): "+odbc_error(stmt, SQL_HANDLE_STMT));
+				}
+				auto rc = SQLExecDirect(stmt, (SQLCHAR*)statement.c_str(), statement.length());
+				std::string err;
+				SQLLEN ret = 0;
+				if(!(SQL_SUCCEEDED(rc) || rc == SQL_NO_DATA)){
+					err = "ODBC error: couldn't SQLExecDirect("+statement+"): "+odbc_error(stmt, SQL_HANDLE_STMT, rc);
+				} else {
+					rc = SQLRowCount(stmt, &ret);
+					if(!SQL_SUCCEEDED(rc)) {
+						err = "ODBC error: couldn't SQLRowCount: "+odbc_error(stmt, SQL_HANDLE_STMT);
+					}
+				}
+				if(!SQL_SUCCEEDED(SQLFreeHandle(SQL_HANDLE_STMT, stmt))) {
+					throw sqlpp::exception("ODBC error: couldn't SQLFreeHandle(HSTMT): "+odbc_error(dbc, SQL_HANDLE_DBC));
+				}
+				stmt = nullptr;
+				if(!SQL_SUCCEEDED(rc)) {
+					throw sqlpp::exception(err);
+				}
+				return ret;
+			}
 
 		}
 	}
