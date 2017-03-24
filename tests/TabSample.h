@@ -48,9 +48,23 @@ namespace TabFoo_ {
 		};
 		using _traits = sqlpp::make_traits<sqlpp::bigint>;
 	};
+	struct Name {
+		struct _alias_t {
+			static constexpr const char _literal[] = "name";
+			using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+			
+			template<typename T>
+			struct _member_t {
+				T name;
+				T& operator()() { return name; }
+				const T& operator()() const { return name; }
+			};
+		};
+		using _traits = sqlpp::make_traits<sqlpp::varchar>;
+	};
 }
 
-struct TabFoo : sqlpp::table_t<TabFoo,TabFoo_::Omega> {
+struct TabFoo : sqlpp::table_t<TabFoo,TabFoo_::Omega,TabFoo_::Name> {
 	struct _alias_t {
 		static constexpr const char _literal[] =  "tab_foo";
 		using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;

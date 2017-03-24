@@ -65,7 +65,7 @@ install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/sqlpp11" DESTINATION include)
 
 add_subdirectory(src)
 
-if(NOT ${CMAKE_SQLPP11_CONNECTOR_ODBC_TESTS_IGNORE})
+if(NOT CMAKE_SQLPP11_CONNECTOR_ODBC_TESTS_IGNORE)
     enable_testing()
     add_subdirectory(tests)
 endif()
