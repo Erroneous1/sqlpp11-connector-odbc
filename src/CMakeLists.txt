@@ -40,5 +40,5 @@ if(NOT WIN32)
 	set_target_properties(sqlpp-odbc-static PROPERTIES OUTPUT_NAME sqlpp-odbc)
 endif()
 
-install(TARGETS sqlpp-odbc-static DESTINATION lib)
-install(TARGETS sqlpp-odbc-shared DESTINATION lib)
+install(TARGETS sqlpp-odbc-static DESTINATION ${DESTDIR}/lib)
+install(TARGETS sqlpp-odbc-shared DESTINATION ${DESTDIR}/lib)
