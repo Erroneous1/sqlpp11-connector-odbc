@@ -33,6 +33,8 @@
 #include <iostream>
 #include <vector>
 
+#include <cassert>
+
 template<typename ResultRow>
 void printResultsSample(const ResultRow& row) {
 	std::cout << "alpha:\t";
@@ -86,88 +88,99 @@ int main(int argc, const char **argv)
 		std::cout << "Usage: ODBCTest data_source_name database username password type" << std::endl;
 		return 1;
 	}
-	odbc::connection_config config;
- 	config.data_source_name = argv[1];
-	config.database = argv[2];
-	config.username = argv[3];
-	config.password = argv[4];
-	std::map<std::string,odbc::connection_config::ODBC_Type> odbc_types({
-		{"MySQL",odbc::connection_config::ODBC_Type::MySQL},
-		{"PostgreSQL",odbc::connection_config::ODBC_Type::PostgreSQL},
-		{"SQLite3",odbc::connection_config::ODBC_Type::SQLite3},
-		{"TSQL",odbc::connection_config::ODBC_Type::TSQL}
-	});
-	auto mType = odbc_types.find(argv[5]);
-	if(mType == odbc_types.end())
-	{
-		std::cout << "Unknown type: " << argv[5] << ", valid types are:" << std::endl;
-		for(auto t : odbc_types)
+	try {
+		odbc::connection_config config;
+		config.data_source_name = argv[1];
+		config.database = argv[2];
+		config.username = argv[3];
+		config.password = argv[4];
+		std::map<std::string,std::pair<odbc::connection_config::ODBC_Type,const char*>> odbc_types({
+			{"MySQL",{odbc::connection_config::ODBC_Type::MySQL,"BIGINT NOT NULL AUTO_INCREMENT"}},
+			{"PostgreSQL",{odbc::connection_config::ODBC_Type::PostgreSQL,"SERIAL"}},
+			{"SQLite3",{odbc::connection_config::ODBC_Type::SQLite3,"BIGINT NOT NULL AUTOINCREMENT"}},
+			{"TSQL",{odbc::connection_config::ODBC_Type::TSQL, "BIGINT NOT NULL AUTO_INCREMENT"}}
+		});
+		auto mType = odbc_types.find(argv[5]);
+		if(mType == odbc_types.end())
 		{
-			std::cout << '\t' << t.first << std::endl;
+			std::cout << "Unknown type: " << argv[5] << ", valid types are:" << std::endl;
+			for(auto t : odbc_types)
+			{
+				std::cout << '\t' << t.first << std::endl;
+			}
 		}
-	}
-	config.type = mType->second;
-	config.debug = true;
-	std::unique_ptr<odbc::connection> db;
-	try
-	{
+		if(mType->second.first == odbc::connection_config::ODBC_Type::SQLite3) {
+			std::cout << "SQLite3 does not allow for proper DATE and TIMESTAMP datatypes. Testing cancelled\n";
+			return 1;
+		}
+		config.type = mType->second.first;
+		std::string auto_increment_column = mType->second.second;
+		config.debug = true;
+		std::unique_ptr<odbc::connection> db;
 		db.reset(new odbc::connection(config));
-	}
-	catch(const sqlpp::exception& )
-	{
-		std::cerr << "For testing, you'll need to create a database sqlpp_sample with a table tab_sample, as shown in tests/TabSample.sql" << std::endl;
-		throw;
-	}
-	db->execute(R"(DROP TABLE IF EXISTS tab_sample)");
-	db->execute(R"(DROP TABLE IF EXISTS tab_foo)");
-	db->execute(R"(DROP TABLE IF EXISTS tab_bar)");
-	db->execute(R"(CREATE TABLE tab_foo (
-		omega bigint(20) AUTO_INCREMENT,
-		PRIMARY KEY (omega)
-	))");
-	db->execute(R"(CREATE TABLE tab_sample (
-			alpha bigint(20) DEFAULT NULL,
-			beta varchar(255) DEFAULT NULL,
-			gamma bool DEFAULT NULL,
-			FOREIGN KEY (alpha) REFERENCES tab_foo(omega)
+		db->execute(R"(DROP TABLE IF EXISTS tab_sample)");
+		db->execute(R"(DROP TABLE IF EXISTS tab_foo)");
+		db->execute(R"(DROP TABLE IF EXISTS tab_bar)");
+		db->execute("CREATE TABLE tab_foo (\n\
+			omega "+auto_increment_column+",\n\
+			name VARCHAR(32),\n\
+			PRIMARY KEY (omega)\n\
+		)");
+		db->execute(R"(CREATE TABLE tab_sample (
+				alpha bigint(20) DEFAULT NULL,
+				beta varchar(255) DEFAULT NULL,
+				gamma bool DEFAULT NULL,
+				FOREIGN KEY (alpha) REFERENCES tab_foo(omega)
+				))");
+		db->execute(R"(CREATE TABLE tab_bar (
+				delta date DEFAULT NULL,
+				epsilon datetime DEFAULT NULL,
+				zeta timestamp,
+				eta time DEFAULT NULL
 			))");
-	db->execute(R"(CREATE TABLE tab_bar (
-			delta date DEFAULT NULL,
-			epsilon datetime DEFAULT NULL,
-			zeta timestamp,
-			eta time DEFAULT NULL
-		))");
 
-	TabFoo foo;
-	TabSample tab;
-	TabBar bar;
-	// clear the table
-	size_t omega = db->insert(insert_into(foo).default_values());
-	
-	std::cout << "Inserted " << omega << std::endl;
-	(*db)(insert_into(tab).set(tab.alpha = (int64_t)omega, tab.gamma = true, tab.beta = "cheesecake"));
-	(*db)(insert_into(tab).set(tab.gamma = false, tab.beta = "blueberry muffin"));
+		TabFoo foo;
+		TabSample tab;
+		TabBar bar;
+		// clear the table
+		size_t omega = db->insert(insert_into(foo).set(foo.name = "test"));
+		
+		std::cout << "Inserted " << omega << std::endl;
+		(*db)(insert_into(tab).set(tab.alpha = (int64_t)omega, tab.gamma = true, tab.beta = "cheesecake"));
+		(*db)(insert_into(tab).set(tab.gamma = false, tab.beta = "blueberry muffin"));
 
-	for(const auto& row : (*db)(select(all_of(tab)).from(tab).unconditionally()))
-	{
-		printResultsSample(row);
-	};
-	auto date_time = std::chrono::system_clock::time_point() 
-		+ std::chrono::microseconds(3723123456);
-	auto dp = date::floor<date::days>(date_time);
-	auto date = date::year_month_day{dp};
-	auto time = date::make_time(date_time-dp);
-	std::cout << "Using today(" << date << ' ' << time << ')' << std::endl;
-	
-	(*db)(insert_into(bar).set(
-		bar.delta = dp,
-		bar.epsilon = date_time,
-		bar.zeta = date_time,
-		bar.eta = date_time));
-	for(const auto& row : (*db)(select(all_of(bar)).from(bar).unconditionally()))
-	{
-		printResultsBar(row);
+		for(const auto& row : (*db)(select(all_of(tab)).from(tab).unconditionally()))
+		{
+			printResultsSample(row);
+		};
+		auto date_time = std::chrono::system_clock::time_point() 
+			+ std::chrono::microseconds(3723123456);
+		auto dp = date::floor<date::days>(date_time);
+		auto date = date::year_month_day{dp};
+		auto time = date::make_time(date_time-dp);
+		std::cout << "Using today(" << date << ' ' << time << ')' << std::endl;
+		
+		db->start_transaction();
+		
+		(*db)(insert_into(bar).set(
+			bar.delta = dp,
+			bar.epsilon = date_time,
+			bar.zeta = date_time,
+			bar.eta = date_time));
+		auto&& select_bar = (*db)(select(all_of(bar)).from(bar).unconditionally());
+		assert(!select_bar.empty());
+		for(const auto& row : select_bar)
+		{
+			printResultsBar(row);
+		}
+		
+		db->rollback_transaction(true);
+		
+		select_bar = (*db)(select(all_of(bar)).from(bar).unconditionally());
+		assert(select_bar.empty());
+	} catch(const std::exception& e) {
+		std::cerr << "Encountered error: " << e.what() << '\n';
+		return 2;
 	}
-
 	return 0;
 }

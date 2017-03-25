@@ -1,6 +1,5 @@
 /* 
- * Original work Copyright (c) 2013-2015, Roland Bock
- * Modified work Copyright (c) 2016, Aaron Bishop
+ * Original work Copyright (c) 2017, Aaron Bishop
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification,
@@ -25,35 +24,14 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SQLPP11_ODBC_CONNECTION_HANDLE_H
-#define SQLPP11_ODBC_CONNECTION_HANDLE_H
+ #ifndef SQLPP11_ODBC_VERSION_H
+ #define SQLPP11_ODBC_VERSION_H
+ 
+ #define SQLPP11_ODBC_VERSION_MAJOR @SQLPP11_ODBC_VERSION_MAJOR@
+ #define SQLPP11_ODBC_VERSION_MINOR @SQLPP11_ODBC_VERSION_MINOR@
+ #define SQLPP11_ODBC_VERSION_PATCH @SQLPP11_ODBC_VERSION_PATCH@
 
-#include <sql.h>
-#include <sqlpp11/odbc/connection_config.h>
-
-namespace sqlpp {
-	namespace odbc {
-		
-		namespace detail {
-			struct connection_handle_t {
-				connection_config config;
-				SQLHENV env;
-				SQLHDBC dbc;
-				
-				connection_handle_t(connection_config config);
-				~connection_handle_t();
-				connection_handle_t(const connection_handle_t&) = delete;
-				connection_handle_t(connection_handle_t&&) = delete;
-				connection_handle_t& operator=(const connection_handle_t&) = delete;
-				connection_handle_t& operator=(connection_handle_t&&) = delete;
-				
-				size_t exec_direct(const std::string& statement);
-			};
-			
-			std::string odbc_error(SQLHANDLE handle, SQLSMALLINT handle_type);
-			std::string odbc_error(SQLHANDLE handle, SQLSMALLINT handle_type, SQLRETURN return_code);
-		}
-	}
-}
-
-#endif //SQLPP11_ODBC_CONNECTION_HANDLE_H
+ #define SQLPP11_ODBC_VERSION "@SQLPP11_ODBC_VERSION@"
+ #define SQLPP11_ODBC_VERSION_INT @SQLPP11_ODBC_VERSION_INT@
+ 
+ #endif //SQLPP11_ODBC_VERSION_H

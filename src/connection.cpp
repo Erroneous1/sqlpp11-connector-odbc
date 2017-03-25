@@ -50,6 +50,12 @@ namespace sqlpp {
 				}
 				return ret;
 			}
+			
+			void set_autocommit(SQLHDBC dbc) {
+				if(!SQL_SUCCEEDED(SQLSetConnectAttr(dbc, SQL_ATTR_AUTOCOMMIT, SQLPOINTER(SQL_TRUE), 0))) {
+					throw sqlpp::exception("ODBC error: Could not set AUTOCOMMIT to TRUE ("+detail::odbc_error(dbc, SQL_HANDLE_DBC)+')');
+				}
+			}
 		}
 		std::shared_ptr<detail::prepared_statement_handle_t> prepare_statement(detail::connection_handle_t& handle, const std::string& statement) {
 			if(handle.config.debug) {
@@ -137,9 +143,7 @@ namespace sqlpp {
 		}
 		
 		size_t connection::execute(const std::string& statement) {
-			auto prepared = prepare_statement(*_handle, statement);
-			execute_statement(prepared->stmt);
-			return odbc_affected(prepared->stmt);
+			return _handle->exec_direct(statement);
 		}
 		
 		size_t connection::update_impl(const std::string& statement) {
@@ -186,8 +190,12 @@ namespace sqlpp {
 			if(_transaction_active) {
 				throw sqlpp::exception("ODBC error: Cannot have more than one open transaction per connection");
 			}
-			auto prepared = prepare_statement(*_handle, "BEGIN");
-			execute_statement(prepared->stmt);
+			if(_handle->config.debug) {
+				std::cerr << "ODBC debug: Beginning Transaction\n";
+			}
+			if(!SQL_SUCCEEDED(SQLSetConnectAttr(_handle->dbc, SQL_ATTR_AUTOCOMMIT, SQLPOINTER(SQL_FALSE), 0))) {
+				throw sqlpp::exception("ODBC error: Could not set AUTOCOMMIT to FALSE ("+detail::odbc_error(_handle->dbc, SQL_HANDLE_DBC)+')');
+			}
 			_transaction_active = true;
 		}
 		
@@ -195,21 +203,28 @@ namespace sqlpp {
 			if(not _transaction_active) {
 				throw sqlpp::exception("ODBC error: Cannot commit a finished or failed transaction");
 			}
+			if(_handle->config.debug) {
+				std::cerr << "ODBC debug: Committing Transaction\n";
+			}
+			if(!SQL_SUCCEEDED(SQLEndTran(SQL_HANDLE_DBC, _handle->dbc, SQL_COMMIT))) {
+				throw sqlpp::exception("ODBC error: Could not SQLEndTran COMMIT("+detail::odbc_error(_handle->dbc, SQL_HANDLE_DBC)+')');
+			}
+			set_autocommit(_handle->dbc);
 			_transaction_active = false;
-			auto prepared = prepare_statement(*_handle, "COMMIT");
-			execute_statement(prepared->stmt);
 		}
 		
 		void connection::rollback_transaction(bool report) {
 			if(not _transaction_active) {
 				throw sqlpp::exception("ODBC error: Cannot rollback a finished or failed transaction");
 			}
-			_transaction_active = false;
-			if(report) {
+			if(report || _handle->config.debug) {
 				std::cerr << "ODBC warning: Rolling back unfinished transaction" << std::endl;
 			}
-			auto prepared = prepare_statement(*_handle, "ROLLBACK");
-			execute_statement(prepared->stmt);
+			if(!SQL_SUCCEEDED(SQLEndTran(SQL_HANDLE_DBC, _handle->dbc, SQL_ROLLBACK))) {
+				throw sqlpp::exception("ODBC error: Could not SQLEndTran ROLLBACK("+detail::odbc_error(_handle->dbc, SQL_HANDLE_DBC)+')');
+			}
+			set_autocommit(_handle->dbc);
+			_transaction_active = false;
 		}
 		
 		void connection::report_rollback_failure(const std::string message) noexcept {

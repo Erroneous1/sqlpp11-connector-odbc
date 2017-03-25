@@ -1,5 +1,5 @@
 # Original work Copyright (c) 2013-2015, Roland Bock
-# Modified work Copyright (c) 2016, Aaron Bishop
+# Modified work Copyright (c) 2016-2017, Aaron Bishop
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without modification,
@@ -23,13 +23,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-macro (build_and_run arg)
-	include_directories(include)
-	# Add headers to sources to enable file browsing in IDEs
-	add_executable("Sqlpp11ODBC${arg}" "${arg}.cpp" ${sqlpp_headers})
-	target_link_libraries("Sqlpp11ODBC${arg}" ${ODBC_LIBRARIES} sqlpp-odbc)
-	#target_link_libraries("Sqlpp11ODBC${arg}" nativeclient)
-	add_test("Sqlpp11ODBC${arg}" "${arg}")
-endmacro ()
-
-build_and_run(ODBCTest)
+include_directories(include)
+# Add headers to sources to enable file browsing in IDEs
+add_executable("ODBCTest" "ODBCTest.cpp" ${sqlpp_headers})
+target_link_libraries("ODBCTest" ${ODBC_LIBRARIES} sqlpp-odbc-shared)
+add_test("MySQLTest" "ODBCTest" "MySQLTest" "test" "test" "test" "MySQL")
