@@ -101,7 +101,7 @@ namespace sqlpp {
 				return ret;
 			}
 			
-			connection_handle_t::connection_handle_t(connection_config config_) : config(config_), env(nullptr), dbc(nullptr) {
+			connection_handle_t::connection_handle_t(const std::shared_ptr<const connection_config>& config_) : config(config_), env(nullptr), dbc(nullptr), last_insert_id(0) {
 				if(!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env)) || env == nullptr) {
 					throw sqlpp::exception("ODBC error: couldn't SQLAllocHandle(SQL_HANDLE_ENV)");
 				}else if(!SQL_SUCCEEDED(SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, (SQLPOINTER)SQL_OV_ODBC3, 0))) {
@@ -109,26 +109,26 @@ namespace sqlpp {
 				}else if(!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc)) || dbc == nullptr) {
 					throw sqlpp::exception("ODBC error: couldn't SQLAllocHandle(SQL_HANDLE_DBC): "+odbc_error(env, SQL_HANDLE_ENV));
 				}
-				if(config.debug) {
-					std::cerr << "ODBC debug: connecting to DSN: " << config.data_source_name << std::endl;
+				if(config->debug) {
+					std::cerr << "ODBC debug: connecting to DSN: " << config->data_source_name << std::endl;
 				}
 				if(!SQL_SUCCEEDED(SQLConnect(dbc, 
-											 (SQLCHAR*)config.data_source_name.c_str(), config.data_source_name.length(),
-											 config.username.empty() ? nullptr : (SQLCHAR*)config.username.c_str(), config.username.length(),
-											 config.password.empty() ? nullptr : (SQLCHAR*)config.password.c_str(), config.password.length()))) {
+											 (SQLCHAR*)config->data_source_name.c_str(), config->data_source_name.length(),
+											 config->username.empty() ? nullptr : (SQLCHAR*)config->username.c_str(), config->username.length(),
+											 config->password.empty() ? nullptr : (SQLCHAR*)config->password.c_str(), config->password.length()))) {
 					std::string err = detail::odbc_error(dbc, SQL_HANDLE_DBC);
 					//Free and nullify so we don't try to disconnect
 					if(dbc) {
 						SQLFreeHandle(SQL_HANDLE_DBC, dbc);
 						dbc = nullptr;
 					}
-					throw sqlpp::exception("ODBC error: couldn't SQLConnect("+config.data_source_name+"): "+err);
+					throw sqlpp::exception("ODBC error: couldn't SQLConnect("+config->data_source_name+"): "+err);
 				}
-				if(!config.database.empty()) {
-					if(config.debug) {
-						std::cerr << "ODBC debug: using " << config.database << '\n';
+				if(!config->database.empty()) {
+					if(config->debug) {
+						std::cerr << "ODBC debug: using " << config->database << '\n';
 					}
-					exec_direct("USE "+config.database);
+					exec_direct("USE "+config->database);
 				}
 			}
 			
@@ -144,10 +144,11 @@ namespace sqlpp {
 
 			size_t connection_handle_t::exec_direct(const std::string& statement) {
 				SQLHSTMT stmt;
-				if(!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt))) {
-					throw sqlpp::exception("ODBC error: could SQLAllocHandle(SQL_HANDLE_STMT): "+odbc_error(stmt, SQL_HANDLE_STMT));
-				}
+				allocate_stmt(&stmt);
 				auto rc = SQLExecDirect(stmt, (SQLCHAR*)statement.c_str(), statement.length());
+				if(needed_reconnect(rc, &stmt, "SQLExecDirect")) {
+					rc = SQLExecDirect(stmt, (SQLCHAR*)statement.c_str(), statement.length());
+				}
 				std::string err;
 				SQLLEN ret = 0;
 				if(!(SQL_SUCCEEDED(rc) || rc == SQL_NO_DATA)){
@@ -166,6 +167,77 @@ namespace sqlpp {
 					throw sqlpp::exception(err);
 				}
 				return ret;
+			}
+			
+			bool connection_handle_t::needed_reconnect(SQLRETURN ret, SQLHSTMT* stmt, const std::string& function) {
+				if(SQL_SUCCEEDED(ret) || !config->auto_reconnect)
+					return false;
+				bool get_more = true;
+				SQLRETURN rc;
+				std::array<SQLCHAR,6> state;
+				SQLINTEGER native_error;
+				SQLSMALLINT buffer_len;
+				
+				for(SQLSMALLINT rec_number(1); get_more; ++rec_number){
+					if(stmt && *stmt) {
+						rc = SQLGetDiagRec(SQL_HANDLE_STMT, *stmt, rec_number, state.data(), &native_error, nullptr, 0, &buffer_len);
+					} else {
+						rc = SQLGetDiagRec(SQL_HANDLE_DBC, dbc, rec_number, state.data(), &native_error, nullptr, 0, &buffer_len);
+					}
+					switch(rc){
+						case SQL_SUCCESS:
+						case SQL_SUCCESS_WITH_INFO:
+							if(state[0] == '0' && state[1] == '8') { //08*** seem to indicate disconnection errors
+								std::cerr << "ODBC warning: reconnecting due to state ";
+								std::cerr.write(reinterpret_cast<const char*>(state.data()), state.size());
+								std::cerr << " during " << function << '\n';
+								bool realloc_stmt = stmt && *stmt;
+								if(realloc_stmt) {
+									SQLFreeHandle(SQL_HANDLE_STMT, *stmt);
+									*stmt = nullptr;
+								}
+								if(config->debug)
+									std::cerr << "ODBC debug: disconnecting\n";
+								SQLDisconnect(dbc);
+								if(config->debug)
+									std::cerr << "ODBC debug: connecting\n";
+								if(!SQL_SUCCEEDED(SQLConnect(dbc, 
+											 (SQLCHAR*)config->data_source_name.c_str(), config->data_source_name.length(),
+											 config->username.empty() ? nullptr : (SQLCHAR*)config->username.c_str(), config->username.length(),
+											 config->password.empty() ? nullptr : (SQLCHAR*)config->password.c_str(), config->password.length()))) {
+									std::string err = detail::odbc_error(dbc, SQL_HANDLE_DBC);
+									//Free and nullify so we don't try to disconnect
+									if(dbc) {
+										SQLFreeHandle(SQL_HANDLE_DBC, dbc);
+										dbc = nullptr;
+									}
+									throw sqlpp::exception("ODBC error: couldn't SQLConnect("+config->data_source_name+"): "+err);
+								}
+								if(!config->database.empty()) {
+									if(config->debug) {
+										std::cerr << "ODBC debug: using " << config->database << '\n';
+									}
+									exec_direct("USE "+config->database);
+								}
+								std::cerr << "ODBC warning: reconnected successfully\n";
+								if(realloc_stmt)
+									allocate_stmt(stmt);
+								return true;
+							}
+						default:
+							get_more = false; break;
+					}
+				}
+				return false;
+			}
+			
+			void connection_handle_t::allocate_stmt(SQLHSTMT* stmt) {
+				auto rc = SQLAllocHandle(SQL_HANDLE_STMT, dbc, stmt);
+				if(needed_reconnect(rc, stmt, "SQLAllocHandle")) {
+					rc = SQLAllocHandle(SQL_HANDLE_STMT, dbc, stmt);
+				}
+				if(!SQL_SUCCEEDED(rc))
+					throw sqlpp::exception("Couldn't SQLAllocHandle(SQL_HANDLE_STMT): "+odbc_error(dbc, SQL_HANDLE_DBC, rc));
 			}
 
 		}

@@ -28,6 +28,7 @@
 #ifndef SQLPP11_ODBC_CONNECTION_H
 #define SQLPP11_ODBC_CONNECTION_H
 
+#include <memory>
 #include <string>
 #include <sstream>
 #include <sqlpp11/connection.h>
@@ -70,6 +71,7 @@ namespace sqlpp {
 			using _context_t = serializer_t;
 			using _serializer_context_t = _context_t;
 			using _interpreter_context_t = _context_t;
+			typedef ::sqlpp::odbc::connection_config connection_config;
 			
 			struct _tags {
 				using _null_result_is_trivial_value = std::true_type;
@@ -85,12 +87,19 @@ namespace sqlpp {
 				return ::sqlpp::serialize(t, context);
 			}
 			
-			connection(connection_config config);
+			connection(const std::shared_ptr<const connection_config>& config);
+			connection(const connection_config& config);
 			~connection();
 			connection(const connection&) = delete;
 			connection(connection&&) = delete;
 			connection& operator=(const connection&) = delete;
 			connection& operator=(connection&&) = delete;
+			
+			const std::shared_ptr<const connection_config>& get_config() const;
+			
+			bool is_valid() const;
+			
+			void reconnect();
 			
 			//! select returns a result (which can be iterated row by row)
 			template <typename Select>

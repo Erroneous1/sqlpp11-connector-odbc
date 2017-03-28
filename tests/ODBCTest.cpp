@@ -32,6 +32,7 @@
 
 #include <iostream>
 #include <vector>
+#include <thread>
 
 #include <cassert>
 
@@ -94,6 +95,7 @@ int main(int argc, const char **argv)
 		config.database = argv[2];
 		config.username = argv[3];
 		config.password = argv[4];
+		config.auto_reconnect = true;
 		std::map<std::string,std::pair<odbc::connection_config::ODBC_Type,const char*>> odbc_types({
 			{"MySQL",{odbc::connection_config::ODBC_Type::MySQL,"BIGINT NOT NULL AUTO_INCREMENT"}},
 			{"PostgreSQL",{odbc::connection_config::ODBC_Type::PostgreSQL,"SERIAL"}},
@@ -138,6 +140,11 @@ int main(int argc, const char **argv)
 				zeta timestamp,
 				eta time DEFAULT NULL
 			))");
+		
+		assert(true == db->is_valid());
+		db->reconnect();
+		assert(true == db->is_valid());
+		
 
 		TabFoo foo;
 		TabSample tab;
@@ -178,6 +185,14 @@ int main(int argc, const char **argv)
 		
 		select_bar = (*db)(select(all_of(bar)).from(bar).unconditionally());
 		assert(select_bar.empty());
+		
+		std::chrono::seconds sleep_for(30+1);
+		std::cout << "Sleeping for " << sleep_for.count() << " seconds\n";
+		std::this_thread::sleep_for(sleep_for);
+		for(const auto& row : (*db)(select(all_of(tab)).from(tab).unconditionally())) {
+			printResultsSample(row);
+		}
+		std::cerr << "No error!\n";
 	} catch(const std::exception& e) {
 		std::cerr << "Encountered error: " << e.what() << '\n';
 		return 2;

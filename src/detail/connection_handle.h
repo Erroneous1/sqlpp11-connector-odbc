@@ -28,6 +28,7 @@
 #ifndef SQLPP11_ODBC_CONNECTION_HANDLE_H
 #define SQLPP11_ODBC_CONNECTION_HANDLE_H
 
+#include <memory>
 #include <sql.h>
 #include <sqlpp11/odbc/connection_config.h>
 
@@ -36,11 +37,12 @@ namespace sqlpp {
 		
 		namespace detail {
 			struct connection_handle_t {
-				connection_config config;
+				std::shared_ptr<const connection_config> config;
 				SQLHENV env;
 				SQLHDBC dbc;
+				size_t last_insert_id;
 				
-				connection_handle_t(connection_config config);
+				connection_handle_t(const std::shared_ptr<const connection_config>& config);
 				~connection_handle_t();
 				connection_handle_t(const connection_handle_t&) = delete;
 				connection_handle_t(connection_handle_t&&) = delete;
@@ -48,6 +50,10 @@ namespace sqlpp {
 				connection_handle_t& operator=(connection_handle_t&&) = delete;
 				
 				size_t exec_direct(const std::string& statement);
+				
+				bool needed_reconnect(SQLRETURN ret, SQLHSTMT* stmt, const std::string& function);
+				
+				void allocate_stmt(SQLHSTMT* stmt);
 			};
 			
 			std::string odbc_error(SQLHANDLE handle, SQLSMALLINT handle_type);

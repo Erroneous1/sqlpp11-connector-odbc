@@ -40,7 +40,7 @@ namespace sqlpp {
 				SQLite3,
 				TSQL
 			};
-			connection_config() : data_source_name(), username(), password(), database(), type(ODBC_Type::TSQL), debug(false) {}
+			connection_config() : data_source_name(), username(), password(), database(), type(ODBC_Type::TSQL), debug(false), auto_reconnect(false) {}
 			connection_config(const connection_config&) = default;
 			connection_config(connection_config&&) = default;
 			
@@ -59,6 +59,7 @@ namespace sqlpp {
 			std::string data_source_name, username, password, database;
 			ODBC_Type type;
 			bool debug;
+			bool auto_reconnect;
 		};
 	}
 }
