@@ -213,18 +213,20 @@ namespace sqlpp {
 		
 		std::string connection::escape(const std::string& s) const {
 			std::string t;
-			size_t count(s.size());
+			t.reserve(s.length());
 			for(auto c : s){
-				if(c == '\''){
-					count++;
+				switch(c) {
+					case '\0': t += "\\0"; break;
+					case '\\': t += "\\\\"; break;
+					case '\'': t += "\\'"; break;
+					case '\r': t += "\\r"; break;
+					case '\n': t += "\\n"; break;
+					case '\t': t += "\\t"; break;
+					case '\b': t += "\\b"; break;
+					case '\f': t += "\\f"; break;
+					case '/': t += "\\/"; break;
+					default: t += c; break;
 				}
-			}
-			t.reserve(count);
-			for(auto c : s){
-				if(c == '\''){
-					t.push_back(c);
-				}
-				t.push_back(c);
 			}
 			return t;
 		}
