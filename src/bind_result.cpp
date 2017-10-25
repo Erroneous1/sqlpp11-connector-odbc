@@ -119,7 +119,7 @@ namespace sqlpp {
 			}
 			*is_null = (ind == SQL_NULL_DATA);
 			if(!*is_null) {
-				*value = ::date::day_point( ::date::year(date_struct.year) / date_struct.month / date_struct.day );
+				*value = ::sqlpp::day_point::_cpp_value_type( ::date::year(date_struct.year) / date_struct.month / date_struct.day );
 			}
 		}
 		
@@ -135,7 +135,7 @@ namespace sqlpp {
 			}
 			*is_null = (ind == SQL_NULL_DATA);
 			if(!*is_null) {
-				*value = ::date::day_point(::date::year(timestamp_struct.year) / timestamp_struct.month / timestamp_struct.day);
+				*value = ::sqlpp::day_point::_cpp_value_type(::date::year(timestamp_struct.year) / timestamp_struct.month / timestamp_struct.day);
 				*value += 
 					std::chrono::hours(timestamp_struct.hour) +
 					std::chrono::minutes(timestamp_struct.minute) +
