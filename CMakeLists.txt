@@ -23,34 +23,18 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 project (sqlpp11-connector-odbc)
 
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake)
+find_package(Sqlpp11 REQUIRED)
 
+include_directories(${HinnantDate_INCLUDE_DIR})
+
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake)
 find_package(ODBC REQUIRED)
 
 include_directories(${ODBC_INCLUDE_DIRECTORIES})
 
-message(STATUS "Using ${CMAKE_CXX_COMPILER} (compiler id: ${CMAKE_CXX_COMPILER_ID})")
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-	set(CMAKE_CXX_FLAGS "-Wall -std=c++11 -stdlib=libc++ ${CMAKE_CXX_FLAGS}")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-	set(CMAKE_CXX_FLAGS "-Wall -std=c++11 ${CMAKE_CXX_FLAGS}")
-endif ()
-
-
-set(SQLPP11_INCLUDE_DIR "/usr/include/" CACHE FILEPATH "Path to sqlpp11 includes")
-
-if(NOT EXISTS ${SQLPP11_INCLUDE_DIR}/sqlpp11/exception.h)
-  message(SEND_ERROR "Can't find exception.h in ${SQLPP11_INCLUDE_DIR}")
-endif()
-
-set(DATE_INCLUDE_DIR "${SQLPP11_INCLUDE_DIR}/sqlpp11" CACHE FILEPATH "Path to Howard Hinnant's date library")
-
-if(NOT EXISTS ${DATE_INCLUDE_DIR}/date.h)
-	message(SEND_ERROR "Can't find date.h in ${DATE_INCLUDE_DIR}")
-endif()
 
 set(SQLPP11_ODBC_VERSION_MAJOR 0)
 set(SQLPP11_ODBC_VERSION_MINOR 4)
@@ -89,21 +73,15 @@ set(SQLPP11_ODBC_VERSION "${PROJECT_VERSION}")
 
 configure_file(version.h.in version.h @ONLY)
 
-message(SEND_MESSAGE "including sqlpp11 from ${SQLPP11_INCLUDE_DIR}")
-set(include_dir "${PROJECT_SOURCE_DIR}/sqlpp11")
-include_directories(
-	${SQLPP11_INCLUDE_DIR}
-	${DATE_INCLUDE_DIR}
-	${include_dir}
-	${PROJECT_SOURCE_DIR}/include/
-	)
+include_directories(${PROJECT_SOURCE_DIR}/include)
 
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/sqlpp11" DESTINATION ${DESTDIR}/include)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/version.h" DESTINATION ${DESTDIR}/include/sqlpp11/odbc/)
 
 add_subdirectory(src)
 
+enable_testing()
+
 if(NOT CMAKE_SQLPP11_CONNECTOR_ODBC_TESTS_IGNORE)
-    enable_testing()
     add_subdirectory(tests)
 endif()
