@@ -119,7 +119,7 @@ namespace sqlpp {
 			}
 			*is_null = (ind == SQL_NULL_DATA);
 			if(!*is_null) {
-				*value = ::date::day_point( ::date::year(date_struct.year) / date_struct.month / date_struct.day );
+				*value = ::sqlpp::day_point::_cpp_value_type( ::date::year(date_struct.year) / date_struct.month / date_struct.day );
 			}
 		}
 		
@@ -135,7 +135,7 @@ namespace sqlpp {
 			}
 			*is_null = (ind == SQL_NULL_DATA);
 			if(!*is_null) {
-				*value = ::date::day_point(::date::year(timestamp_struct.year) / timestamp_struct.month / timestamp_struct.day);
+				*value = ::sqlpp::day_point::_cpp_value_type(::date::year(timestamp_struct.year) / timestamp_struct.month / timestamp_struct.day);
 				*value += 
 					std::chrono::hours(timestamp_struct.hour) +
 					std::chrono::minutes(timestamp_struct.minute) +
@@ -193,6 +193,17 @@ namespace sqlpp {
 				default:
 					throw sqlpp::exception("ODBC error: couldn't SQLFetch(returned "+std::to_string(rc)+"): "+detail::odbc_error(_handle->stmt, SQL_HANDLE_STMT));
 			}
+		}
+
+		size_t bind_result_t::size() const {
+			SQLLEN ret = 0;
+			if(!SQL_SUCCEEDED(SQLRowCount(_handle->stmt, &ret))) {
+				throw sqlpp::exception("ODBC error: couldn't SQLRowCount(SQLLEN*): "+detail::odbc_error(_handle->stmt, SQL_HANDLE_STMT));
+			}
+			if(ret < 0) {
+				throw sqlpp::exception("ODBC error: bind_result_t.size() returned negative number!");
+			}
+			return ret;
 		}
 	}
 }
