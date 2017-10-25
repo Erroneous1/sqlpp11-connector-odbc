@@ -194,5 +194,16 @@ namespace sqlpp {
 					throw sqlpp::exception("ODBC error: couldn't SQLFetch(returned "+std::to_string(rc)+"): "+detail::odbc_error(_handle->stmt, SQL_HANDLE_STMT));
 			}
 		}
+
+		size_t bind_result_t::size() const {
+			SQLLEN ret = 0;
+			if(!SQL_SUCCEEDED(SQLRowCount(_handle->stmt, &ret))) {
+				throw sqlpp::exception("ODBC error: couldn't SQLRowCount(SQLLEN*): "+detail::odbc_error(_handle->stmt, SQL_HANDLE_STMT));
+			}
+			if(ret < 0) {
+				throw sqlpp::exception("ODBC error: bind_result_t.size() returned negative number!");
+			}
+			return ret;
+		}
 	}
 }

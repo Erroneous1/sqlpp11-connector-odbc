@@ -149,10 +149,18 @@ int main(int argc, const char **argv)
 		(*db)(insert_into(tab).set(tab.alpha = (int64_t)omega, tab.gamma = true, tab.beta = "cheesecake"));
 		(*db)(insert_into(tab).set(tab.gamma = false, tab.beta = "blueberry muffin"));
 
-		for(const auto& row : (*db)(select(all_of(tab)).from(tab).unconditionally()))
 		{
-			printResultsSample(row);
-		};
+			auto result = (*db)(select(all_of(tab)).from(tab).unconditionally());
+			auto size = result.size();
+			std::cout << "Select returned " << size << " rows\n";
+			assert(size == 2);
+			for(const auto& row : result)
+			{
+				printResultsSample(row);
+				--size;
+			};
+			assert(size == 0);
+		}
 		auto date_time = std::chrono::system_clock::time_point() 
 			+ std::chrono::microseconds(3723123456);
 		auto dp = date::floor<date::days>(date_time);

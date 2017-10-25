@@ -86,6 +86,8 @@ namespace sqlpp {
 			void _bind_date_time_result(size_t index, ::sqlpp::time_point::_cpp_value_type* value, bool* is_null);
 			void _bind_time_of_day_result(size_t index, ::sqlpp::time_of_day::_cpp_value_type* value, bool* is_null);
 			void _bind_timestamp_result(size_t index, SQL_TIMESTAMP_STRUCT* value, bool* is_null);
+
+			size_t size() const;
 		private:
 			bool next_impl();
 		};
