@@ -28,6 +28,16 @@
 #ifndef SQLPP11_ODBC_SERIALIZER_H
 #define SQLPP11_ODBC_SERIALIZER_H
 
+#ifdef _WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif
+#  include <Windows.h>
+#endif
+
 #include <sql.h>
 #include <sqlpp11/data_types/text/concat.h>
 #include <sqlpp11/insert_value_list.h>
