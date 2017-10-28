@@ -27,8 +27,12 @@ cmake_minimum_required(VERSION 3.0)
 project (sqlpp11-connector-odbc)
 
 find_package(Sqlpp11 REQUIRED)
+set(sqlpp11_includes $<TARGET_PROPERTY:sqlpp11,INTERFACE_INCLUDE_DIRECTORIES>)
+message("<TARGET_PROPERTY:sqlpp11,INTERFACE_INCLUDE_DIRECTORIES>: ${sqlpp11_includes}")
+message("sqlpp11_INCLUDE_DIRECTORIES: ${Sqlpp11_INCLUDE_DIRECTORIES}")
+message("sqlpp11_INCLUDE_DIRS: ${Sqlpp11_INCLUDE_DIRS}")
 
-include_directories(${HinnantDate_INCLUDE_DIR})
+include_directories(${HinnantDate_INCLUDE_DIR} $<TARGET_PROPERTY:sqlpp11,INTERFACE_INCLUDE_DIRECTORIES>)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake)
 find_package(ODBC REQUIRED)
