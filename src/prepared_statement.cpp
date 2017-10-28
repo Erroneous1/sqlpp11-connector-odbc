@@ -28,6 +28,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <cfloat>
 #include <date.h>
 #include <sqlpp11/exception.h>
 #include <sqlpp11/odbc/prepared_statement.h>
@@ -128,7 +129,7 @@ namespace sqlpp {
 									   SQL_C_DOUBLE, 
 									   SQL_DOUBLE, 
 									   15,
-									   __DBL_DIG__, 
+									   DBL_DIG,
 									   (SQLPOINTER)value, 
 									   sizeof(double), 
 									   &indPtr);
