@@ -31,6 +31,7 @@ Requirements:
 __Compiler:__
 sqlpp11-connector-odbc makes use of C++11 and requires a recent compiler and STL. The following compilers are known to compile the test programs:
   * g++-7.2.0 on Arch Linux as of 2017-10-25
+  * Visual Studio on Windows 7 using LLVM toolset as of 2017-10-29
 
 __C++ SQL Layer:__
 sqlpp11-connector-odbc depends on sqlpp11 (https://github.com/rbock/sqlpp11).
@@ -43,3 +44,14 @@ Using the same `sqlpp::odbc::connection` object on multiple threads is not safe.
 
 __Wide Strings:__
 While sqlpp11-connector-odbc should compile on Windows (possibly with some modifications), sqlpp11 uses std::string and std::ostream.
+
+__Windows:__
+To build on Windows for 64 bit, first build and install sqlpp11:
+```sh
+mkdir sqlpp11/build
+cd sqlpp11/build
+cmake .. -G"Visual Studio 15 2017 Win64" -T"LLVM-vs2014" -DHinnantDate_ROOT_DIR="C:/Users/myuser/source/repos/date/include"
+# Use VS 2017 to build INSTALL project
+# As admin, run the Post Build script for INSTALL project
+```
+Then you can build sqlpp11-connector-odbc the same way.

@@ -25,10 +25,10 @@
 
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 
-project (sqlpp11-connector-odbc VERSION 0.5.0 LANGUAGES CXX)
+project (sqlpp11-connector-odbc VERSION 0.6.0 LANGUAGES CXX)
 
 set(SQLPP11_ODBC_VERSION_MAJOR 0)
-set(SQLPP11_ODBC_VERSION_MINOR 5)
+set(SQLPP11_ODBC_VERSION_MINOR 6)
 set(SQLPP11_ODBC_VERSION_PATCH 0)
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetVersion.cmake")
 
