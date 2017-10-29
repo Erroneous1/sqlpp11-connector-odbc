@@ -26,5 +26,9 @@
 include_directories(include)
 # Add headers to sources to enable file browsing in IDEs
 add_executable("ODBCTest" "ODBCTest.cpp" ${sqlpp_headers})
-target_link_libraries("ODBCTest" ${ODBC_LIBRARIES} sqlpp-odbc-shared)
+if(SQLPP11_ODBC_DISABLE_STATIC)
+  target_link_libraries("ODBCTest" ${ODBC_LIBRARIES} sqlpp11-odbc-shared)
+else()
+  target_link_libraries("ODBCTest" ${ODBC_LIBRARIES} sqlpp11-odbc-static)
+endif()
 add_test("MySQLTest" "ODBCTest" "MySQLTest" "test" "test" "test" "MySQL")

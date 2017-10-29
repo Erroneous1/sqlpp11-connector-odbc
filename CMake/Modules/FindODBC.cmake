@@ -1,4 +1,6 @@
 # Find the ODBC driver manager includes and library.
+# Modified from POCO C++ FindODBC.cmake
+# https://github.com/pocoproject/poco
 # 
 # This module defines
 # ODBC_INCLUDE_DIRECTORIES, where to find sql.h
@@ -11,9 +13,17 @@ set(SQL_HEADERS sql.h sqlext.h sqltypes.h)
 
 if(WIN32)
 
-  set(ODBC_WIN_ARCH "${ODBC_WIN_ARCH}" CACHE PATH "ODBC Target Architecture")
+  set(ODBC_WIN_ARCH "${ODBC_WIN_ARCH}" CACHE PATH "ODBC Target Architecture Directory Name (x86*|x64|arm|arm64)")
   if(NOT ODBC_WIN_ARCH)
-    set(ODBC_WIN_ARCH "x86")
+    if("${CMAKE_GENERATOR}" MATCHES "Win64")
+	  set(ODBC_WIN_ARCH "x64")
+	elseif("${CMAKE_GENERATOR}" MATCHES "ARM64")
+	  set(ODBC_WIN_ARCH "arm64")
+	elseif("${CMAKE_GENERATOR}" MATCHES "ARM")
+	  set(ODBC_WIN_ARCH "arm")
+	else()
+      set(ODBC_WIN_ARCH "x86")
+	endif()
   endif()
   
   set(PROGENV "ProgramFiles(x86)")

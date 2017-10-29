@@ -23,68 +23,100 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required(VERSION 3.0)
-project (sqlpp11-connector-odbc)
+cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 
-find_package(Sqlpp11 REQUIRED)
-set(sqlpp11_includes $<TARGET_PROPERTY:sqlpp11,INTERFACE_INCLUDE_DIRECTORIES>)
-message("<TARGET_PROPERTY:sqlpp11,INTERFACE_INCLUDE_DIRECTORIES>: ${sqlpp11_includes}")
-message("sqlpp11_INCLUDE_DIRECTORIES: ${Sqlpp11_INCLUDE_DIRECTORIES}")
-message("sqlpp11_INCLUDE_DIRS: ${Sqlpp11_INCLUDE_DIRS}")
-
-include_directories(${HinnantDate_INCLUDE_DIR} $<TARGET_PROPERTY:sqlpp11,INTERFACE_INCLUDE_DIRECTORIES>)
-
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake)
-find_package(ODBC REQUIRED)
-
-include_directories(${ODBC_INCLUDE_DIRECTORIES})
+project (sqlpp11-connector-odbc VERSION 0.5.0 LANGUAGES CXX)
 
 set(SQLPP11_ODBC_VERSION_MAJOR 0)
 set(SQLPP11_ODBC_VERSION_MINOR 5)
 set(SQLPP11_ODBC_VERSION_PATCH 0)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetVersion.cmake")
 
-if(${SQLPP11_ODBC_VERSION_MINOR} LESS 10)
-	set(PROJECT_VERSION_MINOR "0${SQLPP11_ODBC_VERSION_MINOR}")
-else()
-	set(PROJECT_VERSION_MINOR ${SQLPP11_ODBC_VERSION_MINOR})
-endif()
+option(SQLPP11_ODBC_DISABLE_SHARED "Disable making sqlpp11-connector-odbc shared library" Off)
+option(SQLPP11_ODBC_DISABLE_STATIC "Disable making sqlpp11-connector-odbc static library" Off)
 
-set(PROJECT_VERSION "${SQLPP11_ODBC_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
-if(${SQLPP11_ODBC_VERSION_PATCH} GREATER 0)
-	if(${PROJECT_VERSION_PATCH} LESS 10)
-		set(PROJECT_VERSION_PATCH "0${SQLPP11_ODBC_VERSION_PATCH}")
-	else()
-		set(PROJECT_VERSION_PATCH ${SQLPP11_ODBC_VERSION_PATCH})
-	endif()
-	
-	set(PROJECT_VERSION "${PROJECT_VERSION}.${PROJECT_VERSION_PATCH}")
-	set(SQLPP11_ODBC_VERSION_INT "${SQLPP11_ODBC_VERSION_MINOR}${PROJECT_VERSION_PATCH}")
-else()
-	set(SQLPP11_ODBC_VERSION_PATCH 0)
-	set(SQLPP11_ODBC_VERSION_INT "${SQLPP11_ODBC_VERSION_MINOR}00")
-endif()
+find_package(Sqlpp11 REQUIRED)
+include_directories(${HinnantDate_INCLUDE_DIR} $<TARGET_PROPERTY:sqlpp11,INTERFACE_INCLUDE_DIRECTORIES>)
 
-if(${SQLPP11_ODBC_VERSION_MAJOR} GREATER 0)
-	if(${SQLPP11_ODBC_VERSION_MINOR} LESS 10)
-		set(SQLPP11_ODBC_VERSION_INT "${SQLPP11_ODBC_VERSION_MAJOR}0${SQLPP11_ODBC_VERSION_INT}")
-	else()
-		set(SQLPP11_ODBC_VERSION_INT "${SQLPP11_ODBC_VERSION_MAJOR}${SQLPP11_ODBC_VERSION_INT}")
-	endif()
-endif()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
+find_package(ODBC REQUIRED)
 
-set(SQLPP11_ODBC_VERSION "${PROJECT_VERSION}")
-
-configure_file(version.h.in version.h @ONLY)
-
-include_directories(${PROJECT_SOURCE_DIR}/include)
-
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/sqlpp11" DESTINATION ${DESTDIR}/include)
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/version.h" DESTINATION ${DESTDIR}/include/sqlpp11/odbc/)
-
-add_subdirectory(src)
+include_directories(${ODBC_INCLUDE_DIRECTORIES} ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 enable_testing()
 
 if(NOT CMAKE_SQLPP11_CONNECTOR_ODBC_TESTS_IGNORE)
     add_subdirectory(tests)
 endif()
+
+add_library(sqlpp11-odbc INTERFACE)
+
+target_link_libraries(sqlpp11-odbc INTERFACE sqlpp11 ${ODBC_LIBRARIES})
+
+install(TARGETS sqlpp11-odbc EXPORT Sqlpp11ConnectorODBCTargets)
+
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/sqlpp11" DESTINATION include)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/version.h" DESTINATION include/sqlpp11/odbc/)
+
+if(NOT SQLPP11_ODBC_DISABLE_SHARED)
+  add_library(sqlpp11-odbc-shared SHARED
+	src/connection.cpp
+	src/bind_result.cpp
+	src/prepared_statement.cpp
+	src/detail/connection_handle.cpp)
+  target_include_directories(sqlpp11-odbc-shared INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    )
+  target_link_libraries(sqlpp11-odbc-shared sqlpp11-odbc)
+  set_target_properties(sqlpp11-odbc-shared PROPERTIES OUTPUT_NAME sqlpp11-odbc)
+  install(TARGETS sqlpp11-odbc-shared EXPORT Sqlpp11ConnectorODBCTargets DESTINATION lib)
+endif()
+if(NOT SQLPP11_ODBC_DISABLE_STATIC)
+  add_library(sqlpp11-odbc-static STATIC
+	src/connection.cpp
+	src/bind_result.cpp
+	src/prepared_statement.cpp
+	src/detail/connection_handle.cpp)
+  target_include_directories(sqlpp11-odbc-static INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    )
+  target_link_libraries(sqlpp11-odbc-static sqlpp11-odbc)
+  set_target_properties(sqlpp11-odbc-static PROPERTIES OUTPUT_NAME sqlpp11-odbc)
+  install(TARGETS sqlpp11-odbc-static EXPORT Sqlpp11ConnectorODBCTargets DESTINATION lib)
+endif()
+
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/cmake/Sqlpp11ConnectorODBCConfigVersion.cmake"
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
+
+export(EXPORT Sqlpp11ConnectorODBCTargets
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/Sqlpp11ConnectorODBCTargets.cmake"
+)
+
+configure_file(cmake/Sqlpp11ConnectorODBCConfig.cmake
+  "${CMAKE_CURRENT_BINARY_DIR}/cmake/Sqlpp11ConnectorODBCConfig.cmake"
+  COPYONLY
+)
+
+set(ConfigPackageLocation lib/cmake/Sqlpp11ConnectorODBC)
+install(EXPORT Sqlpp11ConnectorODBCTargets
+  FILE
+    Sqlpp11ConnectorODBCTargets.cmake
+  DESTINATION
+    ${ConfigPackageLocation}
+)
+
+install(
+  FILES
+    "cmake/Sqlpp11ConnectorODBCConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake/Sqlpp11ConnectorODBCConfigVersion.cmake"
+    "cmake/Modules/FindODBC.cmake"
+  DESTINATION
+    ${ConfigPackageLocation}
+)
