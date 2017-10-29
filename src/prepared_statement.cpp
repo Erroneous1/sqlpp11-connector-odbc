@@ -28,11 +28,23 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <cfloat>
 #include <date.h>
 #include <sqlpp11/exception.h>
 #include <sqlpp11/odbc/prepared_statement.h>
 #include "detail/prepared_statement_handle.h"
 #include "detail/connection_handle.h"
+
+#ifdef _WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif
+#  include <Windows.h>
+#endif
+
 #include <sql.h>
 #include <sqlext.h>
 
@@ -117,7 +129,7 @@ namespace sqlpp {
 									   SQL_C_DOUBLE, 
 									   SQL_DOUBLE, 
 									   15,
-									   __DBL_DIG__, 
+									   DBL_DIG,
 									   (SQLPOINTER)value, 
 									   sizeof(double), 
 									   &indPtr);
