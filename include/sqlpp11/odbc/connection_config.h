@@ -33,30 +33,50 @@
 
 namespace sqlpp {
 	namespace odbc {
+		enum class ODBC_Type {
+			MySQL,
+			PostgreSQL,
+			SQLite3,
+			TSQL
+		};
 		struct connection_config {
-			enum class ODBC_Type {
-				MySQL,
-				PostgreSQL,
-				SQLite3,
-				TSQL
-			};
-			connection_config() : data_source_name(), username(), password(), database(), type(ODBC_Type::TSQL), debug(false) {}
+			connection_config() : data_source_name(), username(), password(), type(ODBC_Type::TSQL), debug(false) {}
 			connection_config(const connection_config&) = default;
 			connection_config(connection_config&&) = default;
-			
+
 			connection_config(std::string dsn, ODBC_Type t=ODBC_Type::TSQL, std::string vf = "", bool dbg = false)
 			: data_source_name(std::move(dsn)), type(t), debug(dbg) {}
-			
+
 			bool operator==(const connection_config& other) const {
 				return (other.data_source_name == data_source_name and other.type == type and
 				other.debug == debug);
 			}
-			
+
 			bool operator!=(const connection_config& other) const {
 				return !operator==(other);
 			}
-			
-			std::string data_source_name, username, password, database;
+
+			std::string data_source_name;
+			std::string username;
+			std::string password;
+			ODBC_Type type;
+			bool debug;
+		};
+		enum class driver_completion : unsigned short
+		{
+			no_prompt = 0,
+			complete = 1,
+			prompt = 2,
+			complete_required = 3
+		};
+		struct driver_connection_config {
+			driver_connection_config() : window{nullptr}, connection(), completion(driver_completion::no_prompt), type(ODBC_Type::TSQL), debug(false) {}
+			driver_connection_config(const driver_connection_config& ) = default;
+			driver_connection_config(driver_connection_config&& ) = default;
+
+			void* window;
+			std::string connection;
+			driver_completion completion;
 			ODBC_Type type;
 			bool debug;
 		};

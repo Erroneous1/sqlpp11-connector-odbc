@@ -101,34 +101,18 @@ namespace sqlpp {
 				return ret;
 			}
 			
-			connection_handle_t::connection_handle_t(connection_config config_) : config(config_), env(nullptr), dbc(nullptr) {
+			connection_handle_t::connection_handle_t(bool d, ODBC_Type t)
+				: env(nullptr)
+				, dbc(nullptr)
+				, debug(d)
+				, type(t)
+			{
 				if(!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env)) || env == nullptr) {
 					throw sqlpp::exception("ODBC error: couldn't SQLAllocHandle(SQL_HANDLE_ENV)");
 				}else if(!SQL_SUCCEEDED(SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, (SQLPOINTER)SQL_OV_ODBC3, 0))) {
 					throw sqlpp::exception("ODBC error: couldn't SQLSetEnvAttr(SQL_ATTR_ODBC_VERSION, SQL_0V_ODBC3): "+odbc_error(env, SQL_HANDLE_ENV));
 				}else if(!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc)) || dbc == nullptr) {
 					throw sqlpp::exception("ODBC error: couldn't SQLAllocHandle(SQL_HANDLE_DBC): "+odbc_error(env, SQL_HANDLE_ENV));
-				}
-				if(config.debug) {
-					std::cerr << "ODBC debug: connecting to DSN: " << config.data_source_name << std::endl;
-				}
-				if(!SQL_SUCCEEDED(SQLConnect(dbc, 
-											 (SQLCHAR*)config.data_source_name.c_str(), config.data_source_name.length(),
-											 config.username.empty() ? nullptr : (SQLCHAR*)config.username.c_str(), config.username.length(),
-											 config.password.empty() ? nullptr : (SQLCHAR*)config.password.c_str(), config.password.length()))) {
-					std::string err = detail::odbc_error(dbc, SQL_HANDLE_DBC);
-					//Free and nullify so we don't try to disconnect
-					if(dbc) {
-						SQLFreeHandle(SQL_HANDLE_DBC, dbc);
-						dbc = nullptr;
-					}
-					throw sqlpp::exception("ODBC error: couldn't SQLConnect("+config.data_source_name+"): "+err);
-				}
-				if(!config.database.empty()) {
-					if(config.debug) {
-						std::cerr << "ODBC debug: using " << config.database << '\n';
-					}
-					exec_direct("USE "+config.database);
 				}
 			}
 			

@@ -91,14 +91,14 @@ int main(int argc, const char **argv)
 	try {
 		odbc::connection_config config;
 		config.data_source_name = argv[1];
-		config.database = argv[2];
+		const std::string database = argv[2];
 		config.username = argv[3];
 		config.password = argv[4];
-		std::map<std::string,std::pair<odbc::connection_config::ODBC_Type,const char*>> odbc_types({
-			{"MySQL",{odbc::connection_config::ODBC_Type::MySQL,"BIGINT NOT NULL AUTO_INCREMENT"}},
-			{"PostgreSQL",{odbc::connection_config::ODBC_Type::PostgreSQL,"SERIAL"}},
-			{"SQLite3",{odbc::connection_config::ODBC_Type::SQLite3,"BIGINT NOT NULL AUTOINCREMENT"}},
-			{"TSQL",{odbc::connection_config::ODBC_Type::TSQL, "BIGINT NOT NULL AUTO_INCREMENT"}}
+		std::map<std::string,std::pair<odbc::ODBC_Type,const char*>> odbc_types({
+			{"MySQL",{odbc::ODBC_Type::MySQL,"BIGINT NOT NULL AUTO_INCREMENT"}},
+			{"PostgreSQL",{odbc::ODBC_Type::PostgreSQL,"SERIAL"}},
+			{"SQLite3",{odbc::ODBC_Type::SQLite3,"BIGINT NOT NULL AUTOINCREMENT"}},
+			{"TSQL",{odbc::ODBC_Type::TSQL, "BIGINT NOT NULL AUTO_INCREMENT"}}
 		});
 		auto mType = odbc_types.find(argv[5]);
 		if(mType == odbc_types.end())
@@ -109,7 +109,7 @@ int main(int argc, const char **argv)
 				std::cout << '\t' << t.first << std::endl;
 			}
 		}
-		if(mType->second.first == odbc::connection_config::ODBC_Type::SQLite3) {
+		if(mType->second.first == odbc::ODBC_Type::SQLite3) {
 			std::cout << "SQLite3 does not allow for proper DATE and TIMESTAMP datatypes. Testing cancelled\n";
 			return 1;
 		}
@@ -118,6 +118,8 @@ int main(int argc, const char **argv)
 		config.debug = true;
 		std::unique_ptr<odbc::connection> db;
 		db.reset(new odbc::connection(config));
+		if(!database.empty())
+			db->execute("USE "+database);
 		db->execute(R"(DROP TABLE IF EXISTS tab_sample)");
 		db->execute(R"(DROP TABLE IF EXISTS tab_foo)");
 		db->execute(R"(DROP TABLE IF EXISTS tab_bar)");

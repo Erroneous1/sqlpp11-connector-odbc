@@ -84,8 +84,15 @@ namespace sqlpp {
 			static _context_t& _interpret_interpretable(const T& t, _context_t& context) {
 				return ::sqlpp::serialize(t, context);
 			}
+
+			enum class driver_completion : SQLUSMALLINT
+			{
+
+			};
 			
-			connection(connection_config config);
+			connection(const connection_config& config);
+			connection(const driver_connection_config& config, std::string& out_connection, size_t out_max = 255);
+
 			~connection();
 			connection(const connection&) = delete;
 			connection(connection&&) = delete;

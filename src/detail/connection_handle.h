@@ -36,11 +36,13 @@ namespace sqlpp {
 		
 		namespace detail {
 			struct connection_handle_t {
-				connection_config config;
 				SQLHENV env;
 				SQLHDBC dbc;
+				bool debug;
+				ODBC_Type type;
 				
-				connection_handle_t(connection_config config);
+				connection_handle_t(bool d, ODBC_Type t);
+
 				~connection_handle_t();
 				connection_handle_t(const connection_handle_t&) = delete;
 				connection_handle_t(connection_handle_t&&) = delete;
@@ -49,7 +51,7 @@ namespace sqlpp {
 				
 				size_t exec_direct(const std::string& statement);
 			};
-			
+
 			std::string odbc_error(SQLHANDLE handle, SQLSMALLINT handle_type);
 			std::string odbc_error(SQLHANDLE handle, SQLSMALLINT handle_type, SQLRETURN return_code);
 		}
