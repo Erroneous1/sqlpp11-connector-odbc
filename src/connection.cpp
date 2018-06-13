@@ -32,6 +32,14 @@
 #include <sqlpp11/odbc/connection.h>
 #include "detail/prepared_statement_handle.h"
 #include "detail/connection_handle.h"
+
+#ifdef _WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  include <Windows.h>
+#endif
+
 #include <sqlext.h>
 #include <sqltypes.h>
 

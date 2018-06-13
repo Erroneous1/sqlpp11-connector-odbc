@@ -34,11 +34,11 @@ add_library(sqlpp-odbc-shared SHARED
 	prepared_statement.cpp
 	detail/connection_handle.cpp)
 
+target_link_libraries(sqlpp-odbc-static ${ODBC_LIBRARIES})
+target_link_libraries(sqlpp-odbc-shared ${ODBC_LIBRARIES})
+
 set_target_properties(sqlpp-odbc-shared PROPERTIES OUTPUT_NAME sqlpp-odbc)
-#Use sqlpp-odbc as the name unless using Windows
-if(NOT WIN32)
-	set_target_properties(sqlpp-odbc-static PROPERTIES OUTPUT_NAME sqlpp-odbc)
-endif()
+set_target_properties(sqlpp-odbc-static PROPERTIES OUTPUT_NAME sqlpp-odbc)
 
 install(TARGETS sqlpp-odbc-static DESTINATION ${DESTDIR}/lib)
 install(TARGETS sqlpp-odbc-shared DESTINATION ${DESTDIR}/lib)

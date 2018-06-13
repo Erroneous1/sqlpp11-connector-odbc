@@ -29,6 +29,17 @@
 #include <vector>
 #include <sqlpp11/exception.h>
 #include <sqlpp11/odbc/bind_result.h>
+
+#ifdef _WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif
+#  include <Windows.h>
+#endif
+
 #include <sql.h>
 #include <sqlext.h>
 #include "detail/prepared_statement_handle.h"
