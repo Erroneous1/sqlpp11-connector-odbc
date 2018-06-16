@@ -30,7 +30,7 @@ project (sqlpp11-connector-odbc VERSION 0.6.0 LANGUAGES CXX)
 set(SQLPP11_ODBC_VERSION_MAJOR 0)
 set(SQLPP11_ODBC_VERSION_MINOR 6)
 set(SQLPP11_ODBC_VERSION_PATCH 0)
-include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetVersion.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/CMake/SetVersion.cmake")
 
 option(SQLPP11_ODBC_DISABLE_SHARED "Disable making sqlpp11-connector-odbc shared library" Off)
 option(SQLPP11_ODBC_DISABLE_STATIC "Disable making sqlpp11-connector-odbc static library" Off)
@@ -38,7 +38,7 @@ option(SQLPP11_ODBC_DISABLE_STATIC "Disable making sqlpp11-connector-odbc static
 find_package(Sqlpp11 REQUIRED)
 include_directories(${HinnantDate_INCLUDE_DIR} $<TARGET_PROPERTY:sqlpp11,INTERFACE_INCLUDE_DIRECTORIES>)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules/")
 find_package(ODBC REQUIRED)
 
 include_directories(${ODBC_INCLUDE_DIRECTORIES} ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -90,21 +90,21 @@ endif()
 include(CMakePackageConfigHelpers)
 
 write_basic_package_version_file(
-  "${CMAKE_CURRENT_BINARY_DIR}/cmake/Sqlpp11ConnectorODBCConfigVersion.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/CMake/Sqlpp11ConnectorODBCConfigVersion.cmake"
   VERSION ${PROJECT_VERSION}
   COMPATIBILITY AnyNewerVersion
 )
 
 export(EXPORT Sqlpp11ConnectorODBCTargets
-  FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/Sqlpp11ConnectorODBCTargets.cmake"
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/CMake/Sqlpp11ConnectorODBCTargets.cmake"
 )
 
-configure_file(cmake/Sqlpp11ConnectorODBCConfig.cmake
-  "${CMAKE_CURRENT_BINARY_DIR}/cmake/Sqlpp11ConnectorODBCConfig.cmake"
+configure_file(CMake/Sqlpp11ConnectorODBCConfig.cmake
+  "${CMAKE_CURRENT_BINARY_DIR}/CMake/Sqlpp11ConnectorODBCConfig.cmake"
   COPYONLY
 )
 
-set(ConfigPackageLocation lib/cmake/Sqlpp11ConnectorODBC)
+set(ConfigPackageLocation lib/CMake/Sqlpp11ConnectorODBC)
 install(EXPORT Sqlpp11ConnectorODBCTargets
   FILE
     Sqlpp11ConnectorODBCTargets.cmake
@@ -114,9 +114,9 @@ install(EXPORT Sqlpp11ConnectorODBCTargets
 
 install(
   FILES
-    "cmake/Sqlpp11ConnectorODBCConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmake/Sqlpp11ConnectorODBCConfigVersion.cmake"
-    "cmake/Modules/FindODBC.cmake"
+    "CMake/Sqlpp11ConnectorODBCConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/CMake/Sqlpp11ConnectorODBCConfigVersion.cmake"
+    "CMake/Modules/FindODBC.cmake"
   DESTINATION
     ${ConfigPackageLocation}
 )
