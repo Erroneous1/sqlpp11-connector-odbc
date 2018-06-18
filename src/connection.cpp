@@ -66,22 +66,98 @@ namespace sqlpp {
 			}
 		}
 		std::shared_ptr<detail::prepared_statement_handle_t> prepare_statement(detail::connection_handle_t& handle, const std::string& statement) {
-			if(handle.config.debug) {
+			if(handle.debug) {
 				std::cerr << "ODBC debug: Preparing: " << statement << std::endl;
 			}
 			SQLHSTMT stmt;
 			SQLAllocHandle(SQL_HANDLE_STMT, handle.dbc, &stmt);
-			std::shared_ptr<detail::prepared_statement_handle_t> ret = std::make_shared<detail::prepared_statement_handle_t>(stmt, handle.config.debug);
-			if(SQL_SUCCEEDED(SQLPrepare(stmt, (SQLCHAR*)statement.c_str(), statement.length()))){
+			std::shared_ptr<detail::prepared_statement_handle_t> ret = std::make_shared<detail::prepared_statement_handle_t>(stmt, handle.debug);
+			if(SQL_SUCCEEDED(SQLPrepare(stmt, make_sqlchar(statement), statement.length()))){
 				return ret;
 			} else {
 				throw sqlpp::exception("ODBC error: couldn't SQLPrepare " + statement + ": "+detail::odbc_error(stmt, SQL_HANDLE_STMT));
 			}
 		}
-		connection::connection(connection_config config) : _handle(new detail::connection_handle_t(std::move(config))) {}
-		
+
+		connection::connection(const connection_config& config)
+			: _handle(new detail::connection_handle_t(config.debug, config.type))
+		{
+			if(_handle->debug) {
+				std::cerr << "ODBC debug: connecting to DSN: " << config.data_source_name << std::endl;
+			}
+			if(!SQL_SUCCEEDED(SQLConnect(_handle->dbc,
+				make_sqlchar(config.data_source_name), config.data_source_name.length(),
+				config.username.empty() ? nullptr : make_sqlchar(config.username), config.username.length(),
+				config.password.empty() ? nullptr : make_sqlchar(config.password), config.password.length())))
+			{
+				std::string err = detail::odbc_error(_handle->dbc, SQL_HANDLE_DBC);
+				//Free and nullify so we don't try to disconnect
+				if(_handle->dbc) {
+					auto d = _handle->dbc;
+					_handle->dbc = nullptr;
+					SQLFreeHandle(SQL_HANDLE_DBC, d);
+				}
+				throw sqlpp::exception("ODBC error: couldn't SQLConnect("+config.data_source_name+"): "+err);
+			}
+		}
+
 		connection::~connection() {}
-		
+
+
+		inline SQLUSMALLINT from_completion(const driver_completion c)
+		{
+			//Just in case the values are different on your system
+			//Otherwise we could just cast. Optimizer might do that anyway.
+			switch(c) {
+				case driver_completion::prompt:
+					return SQL_DRIVER_PROMPT;
+				case driver_completion::complete:
+					return SQL_DRIVER_COMPLETE;
+				case driver_completion::complete_required:
+					return SQL_DRIVER_COMPLETE_REQUIRED;
+				case driver_completion::no_prompt:
+					return SQL_DRIVER_NOPROMPT;
+				default:
+					return static_cast<SQLUSMALLINT>(c);
+			}
+		}
+
+		static SQLSMALLINT connect_driver(detail::connection_handle_t& handle, const driver_connection_config& config, SQLCHAR* out_connection, size_t out_max)
+		{
+			if(handle.debug) {
+				std::cerr << "ODBC debug: connecting to " << config.connection << std::endl;
+			}
+			SQLSMALLINT out_size = std::min<size_t>(out_max, std::numeric_limits<SQLSMALLINT>::max());
+			const bool success = SQL_SUCCEEDED(
+				SQLDriverConnect(handle.dbc,
+				config.window,
+				make_sqlchar(config.connection), config.connection.length(),
+				out_connection, out_size,
+				&out_size, from_completion(config.completion)));
+			if(!success) {
+				std::string err = detail::odbc_error(handle.dbc, SQL_HANDLE_DBC);
+				//Free and nullify so we don't try to disconnect
+				if(handle.dbc) {
+					auto dbc = handle.dbc;
+					handle.dbc = nullptr;
+					SQLFreeHandle(SQL_HANDLE_DBC, dbc);
+				}
+				throw sqlpp::exception("ODBC error: couldn't SQLDriverConnect("+config.connection+"): "+err);
+			}
+			return out_size;
+		}
+		connection::connection(const driver_connection_config& config)
+			: _handle(new detail::connection_handle_t(config.debug, config.type))
+		{
+			connect_driver(*_handle, config, nullptr, 0);
+		}
+		connection::connection(const driver_connection_config& config, std::string& out_connection, size_t out_max)
+			: _handle(new detail::connection_handle_t(config.debug, config.type))
+		{
+			out_connection.resize(out_max, '\0');
+			out_connection.resize(connect_driver(*_handle, config, make_sqlchar(out_connection), out_max), '\0');
+		}
+
 		bind_result_t connection::select_impl(const std::string& statement) {
 			auto prepared = prepare_statement(*_handle, statement);
 			if(!prepared || !*prepared) {
@@ -99,17 +175,17 @@ namespace sqlpp {
 		}
 		size_t connection::last_insert_id(){
 			std::string statement;
-			switch(_handle->config.type){
-				case connection_config::ODBC_Type::MySQL:
+			switch(_handle->type){
+				case ODBC_Type::MySQL:
 					statement = "SELECT LAST_INSERT_ID()"; break;
-				case connection_config::ODBC_Type::TSQL:
+				case ODBC_Type::TSQL:
 					statement = "SELECT SCOPE_IDENTITY"; break;
-				case connection_config::ODBC_Type::SQLite3:
+				case ODBC_Type::SQLite3:
 					statement = "SELECT last_insert_rowid()"; break;
-				case connection_config::ODBC_Type::PostgreSQL:
+				case ODBC_Type::PostgreSQL:
 					statement = "SELECT LASTVAL()"; break;
 				default:
-					throw sqlpp::exception("Can't get last insert id for dsn "+_handle->config.data_source_name);
+					throw sqlpp::exception("Can't get last insert id for ODBC_Type "+std::to_string(static_cast<int>(_handle->type)));
 			}
 			auto prepared_statement = prepare_statement(*_handle, statement);
 			execute_statement(prepared_statement->stmt);
@@ -198,7 +274,7 @@ namespace sqlpp {
 			if(_transaction_active) {
 				throw sqlpp::exception("ODBC error: Cannot have more than one open transaction per connection");
 			}
-			if(_handle->config.debug) {
+			if(_handle->debug) {
 				std::cerr << "ODBC debug: Beginning Transaction\n";
 			}
 			if(!SQL_SUCCEEDED(SQLSetConnectAttr(_handle->dbc, SQL_ATTR_AUTOCOMMIT, SQLPOINTER(SQL_FALSE), 0))) {
@@ -211,7 +287,7 @@ namespace sqlpp {
 			if(not _transaction_active) {
 				throw sqlpp::exception("ODBC error: Cannot commit a finished or failed transaction");
 			}
-			if(_handle->config.debug) {
+			if(_handle->debug) {
 				std::cerr << "ODBC debug: Committing Transaction\n";
 			}
 			if(!SQL_SUCCEEDED(SQLEndTran(SQL_HANDLE_DBC, _handle->dbc, SQL_COMMIT))) {
@@ -225,7 +301,7 @@ namespace sqlpp {
 			if(not _transaction_active) {
 				throw sqlpp::exception("ODBC error: Cannot rollback a finished or failed transaction");
 			}
-			if(report || _handle->config.debug) {
+			if(report || _handle->debug) {
 				std::cerr << "ODBC warning: Rolling back unfinished transaction" << std::endl;
 			}
 			if(!SQL_SUCCEEDED(SQLEndTran(SQL_HANDLE_DBC, _handle->dbc, SQL_ROLLBACK))) {

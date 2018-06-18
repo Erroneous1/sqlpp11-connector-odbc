@@ -41,16 +41,27 @@
 #include <sql.h>
 #include <sqlpp11/odbc/connection_config.h>
 
+//I wish ODBC used const SQLCHAR* when it won't be modified
+inline SQLCHAR* make_sqlchar(const std::string& str)
+{
+	return const_cast<SQLCHAR*>(reinterpret_cast<const SQLCHAR*>(str.c_str()));
+}
+inline SQLCHAR* make_sqlchar(std::string& str)
+{
+	return reinterpret_cast<SQLCHAR*>(&str[0]);
+}
+
 namespace sqlpp {
 	namespace odbc {
 		
 		namespace detail {
 			struct connection_handle_t {
-				connection_config config;
 				SQLHENV env;
 				SQLHDBC dbc;
+				bool debug;
+				ODBC_Type type;
 				
-				connection_handle_t(connection_config config);
+				connection_handle_t(bool _debug, ODBC_Type _type);
 				~connection_handle_t();
 				connection_handle_t(const connection_handle_t&) = delete;
 				connection_handle_t(connection_handle_t&&) = delete;

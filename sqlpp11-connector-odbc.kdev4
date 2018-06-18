@@ -1,4 +1,4 @@
 [Project]
-Name=sqlpp11-connector-odbc
+CreatedFrom=CMakeLists.txt
 Manager=KDevCMakeManager
-VersionControl=kdevgit
+Name=sqlpp11-connector-odbc

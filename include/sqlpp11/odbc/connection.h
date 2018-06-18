@@ -96,7 +96,10 @@ namespace sqlpp {
 				return ::sqlpp::serialize(t, context);
 			}
 			
-			connection(connection_config config);
+			connection(const connection_config& config);
+			connection(const driver_connection_config& config);
+			connection(const driver_connection_config& config, std::string& out_connection, size_t out_max = 255);
+
 			~connection();
 			connection(const connection&) = delete;
 			connection(connection&&) = delete;
