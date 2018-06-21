@@ -81,7 +81,7 @@ namespace sqlpp {
 		
 		prepared_statement_t::prepared_statement_t(std::shared_ptr<detail::prepared_statement_handle_t>&& handle)
 		: _handle(std::move(handle)) {
-			if(_handle and _handle->debug) {
+			if(_handle && _handle->debug) {
 				std::cerr << "ODBC debug: Constructing prepared_statement, using handle at " << _handle.get() << std::endl;
 			}
 		}

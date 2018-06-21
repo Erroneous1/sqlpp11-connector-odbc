@@ -48,7 +48,7 @@ namespace sqlpp {
 			: data_source_name(std::move(dsn)), type(t), debug(dbg) {}
 
 			bool operator==(const connection_config& other) const {
-				return (other.data_source_name == data_source_name and other.type == type and
+				return (other.data_source_name == data_source_name && other.type == type &&
 				other.debug == debug);
 			}
 
