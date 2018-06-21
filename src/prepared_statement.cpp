@@ -29,7 +29,7 @@
 #include <sstream>
 #include <string>
 #include <cfloat>
-#include <date.h>
+#include <date/date.h>
 #include <sqlpp11/exception.h>
 #include <sqlpp11/odbc/prepared_statement.h>
 #include "detail/prepared_statement_handle.h"
