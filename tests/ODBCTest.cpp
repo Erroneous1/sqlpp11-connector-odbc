@@ -83,24 +83,20 @@ void printResultsBar(const ResultRow& row) {
 namespace odbc = sqlpp::odbc;
 int main(int argc, const char **argv)
 {
-	if(argc != 6)
+	if(argc != 6 && argc != 4)
 	{
-		std::cout << "Usage: ODBCTest data_source_name database username password type" << std::endl;
+		std::cout << "Usage:\n\tODBCTest data_source_name database username password type\n"
+			"\tODBCTest connection database type" << std::endl;
 		return 1;
 	}
 	try {
-		odbc::connection_config config;
-		config.data_source_name = argv[1];
-		config.database = argv[2];
-		config.username = argv[3];
-		config.password = argv[4];
-		std::map<std::string,std::pair<odbc::connection_config::ODBC_Type,const char*>> odbc_types({
-			{"MySQL",{odbc::connection_config::ODBC_Type::MySQL,"BIGINT NOT NULL AUTO_INCREMENT"}},
-			{"PostgreSQL",{odbc::connection_config::ODBC_Type::PostgreSQL,"SERIAL"}},
-			{"SQLite3",{odbc::connection_config::ODBC_Type::SQLite3,"BIGINT NOT NULL AUTOINCREMENT"}},
-			{"TSQL",{odbc::connection_config::ODBC_Type::TSQL, "BIGINT NOT NULL AUTO_INCREMENT"}}
+		std::map<std::string,std::pair<odbc::ODBC_Type,const char*>> odbc_types({
+			{"MySQL",{odbc::ODBC_Type::MySQL,"BIGINT NOT NULL AUTO_INCREMENT"}},
+			{"PostgreSQL",{odbc::ODBC_Type::PostgreSQL,"SERIAL"}},
+			{"SQLite3",{odbc::ODBC_Type::SQLite3,"BIGINT NOT NULL AUTOINCREMENT"}},
+			{"TSQL",{odbc::ODBC_Type::TSQL, "BIGINT NOT NULL AUTO_INCREMENT"}}
 		});
-		auto mType = odbc_types.find(argv[5]);
+		auto mType = odbc_types.find(argv[argc-1]);
 		if(mType == odbc_types.end())
 		{
 			std::cout << "Unknown type: " << argv[5] << ", valid types are:" << std::endl;
@@ -109,15 +105,30 @@ int main(int argc, const char **argv)
 				std::cout << '\t' << t.first << std::endl;
 			}
 		}
-		if(mType->second.first == odbc::connection_config::ODBC_Type::SQLite3) {
+		if(mType->second.first == odbc::ODBC_Type::SQLite3) {
 			std::cout << "SQLite3 does not allow for proper DATE and TIMESTAMP datatypes. Testing cancelled\n";
 			return 1;
 		}
-		config.type = mType->second.first;
-		std::string auto_increment_column = mType->second.second;
-		config.debug = true;
 		std::unique_ptr<odbc::connection> db;
-		db.reset(new odbc::connection(config));
+		const std::string database = argv[2];
+		std::string auto_increment_column = mType->second.second;
+		if(argc == 6) {
+			odbc::connection_config config;
+			config.data_source_name = argv[1];
+			config.username = argv[3];
+			config.password = argv[4];
+			config.type = mType->second.first;
+			config.debug = true;
+			db.reset(new odbc::connection(config));
+		} else {
+			odbc::driver_connection_config config;
+			config.connection = argv[1];
+			config.type = mType->second.first;
+			config.debug = true;
+			db.reset(new odbc::connection(config));
+		}
+		if(!database.empty())
+			db->execute("USE "+database);
 		db->execute(R"(DROP TABLE IF EXISTS tab_sample)");
 		db->execute(R"(DROP TABLE IF EXISTS tab_foo)");
 		db->execute(R"(DROP TABLE IF EXISTS tab_bar)");

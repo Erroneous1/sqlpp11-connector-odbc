@@ -63,13 +63,16 @@ namespace sqlpp {
 				SQLSMALLINT buffer_len;
 				bool get_more(true);
 				SQLRETURN rc;
+				std::ostringstream oss;
 				for(SQLSMALLINT rec_number(1); get_more; rec_number++){
 					rc = SQLGetDiagRec(handle_type, handle, rec_number++, state.data(), &native_error, buffer.get(), 1024, &buffer_len);
-					errors.push_back("ODBC error STATE: "+std::string((const char*)state.data())+", Native Error: "+std::to_string(native_error));
+					oss << "ODBC error STATE: " << reinterpret_cast<const char*>(state.data()) << ", Native Error: " << native_error << '\n';
 					switch(rc){
 						case SQL_SUCCESS:
 						case SQL_SUCCESS_WITH_INFO:
-							errors.push_back("Error: "+std::string((const char*)buffer.get(), static_cast<size_t>(buffer_len)));
+							oss << "Error: ";
+							oss.write(reinterpret_cast<const char*>(buffer.get()), static_cast<size_t>(buffer_len));
+							oss << '\n';
 						case SQL_NO_DATA:
 							get_more = false; break;
 						case SQL_INVALID_HANDLE:
@@ -83,52 +86,26 @@ namespace sqlpp {
 							get_more = false; break;
 					}
 				}
-				std::string ret;
-				size_t ret_size(0);
-				for(const auto& s : errors){
-					ret_size += s.length()+1;
-				}
-				ret.reserve(ret_size);
-				if(ret_size != 0){
-					ret.append(errors.front());
-				}else{
+				auto ret = oss.str();
+				if(ret.empty())
 					return "Could not retrieve diagnostic information!";
-				}
-				for(auto itr = errors.begin()+1; itr != errors.end(); itr++){
-					ret += '\n';
-					ret += *itr;
-				}
+				if(*ret.rbegin() == '\n')
+					ret.erase(--ret.end());
 				return ret;
 			}
 			
-			connection_handle_t::connection_handle_t(connection_config config_) : config(config_), env(nullptr), dbc(nullptr) {
+			connection_handle_t::connection_handle_t(bool _debug, ODBC_Type _type)
+				: env(nullptr)
+				, dbc(nullptr)
+				, debug(_debug)
+				, type(_type)
+			{
 				if(!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env)) || env == nullptr) {
 					throw sqlpp::exception("ODBC error: couldn't SQLAllocHandle(SQL_HANDLE_ENV)");
 				}else if(!SQL_SUCCEEDED(SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, (SQLPOINTER)SQL_OV_ODBC3, 0))) {
 					throw sqlpp::exception("ODBC error: couldn't SQLSetEnvAttr(SQL_ATTR_ODBC_VERSION, SQL_0V_ODBC3): "+odbc_error(env, SQL_HANDLE_ENV));
 				}else if(!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc)) || dbc == nullptr) {
 					throw sqlpp::exception("ODBC error: couldn't SQLAllocHandle(SQL_HANDLE_DBC): "+odbc_error(env, SQL_HANDLE_ENV));
-				}
-				if(config.debug) {
-					std::cerr << "ODBC debug: connecting to DSN: " << config.data_source_name << std::endl;
-				}
-				if(!SQL_SUCCEEDED(SQLConnect(dbc, 
-											 (SQLCHAR*)config.data_source_name.c_str(), config.data_source_name.length(),
-											 config.username.empty() ? nullptr : (SQLCHAR*)config.username.c_str(), config.username.length(),
-											 config.password.empty() ? nullptr : (SQLCHAR*)config.password.c_str(), config.password.length()))) {
-					std::string err = detail::odbc_error(dbc, SQL_HANDLE_DBC);
-					//Free and nullify so we don't try to disconnect
-					if(dbc) {
-						SQLFreeHandle(SQL_HANDLE_DBC, dbc);
-						dbc = nullptr;
-					}
-					throw sqlpp::exception("ODBC error: couldn't SQLConnect("+config.data_source_name+"): "+err);
-				}
-				if(!config.database.empty()) {
-					if(config.debug) {
-						std::cerr << "ODBC debug: using " << config.database << '\n';
-					}
-					exec_direct("USE "+config.database);
 				}
 			}
 			
@@ -147,7 +124,7 @@ namespace sqlpp {
 				if(!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt))) {
 					throw sqlpp::exception("ODBC error: could SQLAllocHandle(SQL_HANDLE_STMT): "+odbc_error(stmt, SQL_HANDLE_STMT));
 				}
-				auto rc = SQLExecDirect(stmt, (SQLCHAR*)statement.c_str(), statement.length());
+				auto rc = SQLExecDirect(stmt, make_sqlchar(statement), statement.length());
 				std::string err;
 				SQLLEN ret = 0;
 				if(!(SQL_SUCCEEDED(rc) || rc == SQL_NO_DATA)){
