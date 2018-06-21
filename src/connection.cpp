@@ -130,7 +130,7 @@ namespace sqlpp {
 			SQLSMALLINT out_size = std::min<size_t>(out_max, std::numeric_limits<SQLSMALLINT>::max());
 			const bool success = SQL_SUCCEEDED(
 				SQLDriverConnect(handle.dbc,
-				config.window,
+				(SQLHWND)config.window,
 				make_sqlchar(config.connection), config.connection.length(),
 				out_connection, out_size,
 				&out_size, from_completion(config.completion)));
