@@ -44,7 +44,7 @@
 #include <sqlext.h>
 #include "detail/prepared_statement_handle.h"
 #include "detail/connection_handle.h"
-#include <date.h>
+#include <date/date.h>
 #include <cassert>
 
 namespace sqlpp {
