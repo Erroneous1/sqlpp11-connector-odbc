@@ -67,10 +67,10 @@ namespace sqlpp {
 		inline bool operator==(const connection_config& a, const connection_config& b)
 		{
 			return
-				a.data_source_name == b.data_source_name and
-				a.username == b.username and
-				a.password == b.password and
-				a.type == b.type and
+				a.data_source_name == b.data_source_name &&
+				a.username == b.username &&
+				a.password == b.password &&
+				a.type == b.type &&
 				a.debug == b.debug;
 		}
 
@@ -94,10 +94,10 @@ namespace sqlpp {
 		inline bool operator==(const driver_connection_config& a, const driver_connection_config& b)
 		{
 			return
-				a.connection == b.connection and
-				a.window == b.window and
-				a.completion == b.completion and
-				a.type == b.type and
+				a.connection == b.connection &&
+				a.window == b.window &&
+				a.completion == b.completion &&
+				a.type == b.type &&
 				a.debug == b.debug;
 		}
 
